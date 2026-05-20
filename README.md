@@ -1,0 +1,2 @@
+# aditcg
+site trade pokemon
