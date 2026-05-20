@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<script>
+// Anti-FOUC: apply theme before paint
+(function() {
+  try {
+    var saved = localStorage.getItem('aditcg_theme');
+    var theme = saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+  } catch(e) {}
+})();
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Séries — ADITCG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,700;0,9..144,800;0,9..144,900;1,9..144,300&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .page-head {
+    padding: 50px 0 30px;
+    background: linear-gradient(180deg, var(--white), var(--cream));
+    border-bottom: 1px solid var(--gray-line);
+    position: relative;
+    overflow: hidden;
+  }
+  .page-head::before {
+    content: '';
+    position: absolute;
+    top: -100px; right: -60px;
+    width: 280px; height: 280px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, var(--red) 50%, var(--white) 50%);
+    border: 6px solid var(--ink);
+    opacity: 0.05;
+  }
+  .breadcrumb {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--gray-text);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 16px;
+  }
+  .breadcrumb a { color: var(--gray-text); }
+  .breadcrumb a:hover { color: var(--blue); }
+  .breadcrumb .sep { margin: 0 8px; opacity: 0.5; }
+
+  .page-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 24px 0 12px;
+  }
+
+  /* SERIES BLOCK */
+  .serie-block {
+    margin-bottom: 50px;
+  }
+  .serie-block-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--gray-line);
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .serie-block-name {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .serie-block-name .accent { color: var(--red); font-style: italic; font-weight: 300; }
+  .serie-block-meta {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--gray-text);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .serie-block-meta strong { color: var(--ink); }
+
+  /* COLLECTIONS GRID - identique à index */
+  .collections-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+  }
+
+  .coll-card {
+    background: var(--white);
+    border: 1.5px solid var(--gray-line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: all 0.25s;
+    cursor: pointer;
+    display: block;
+  }
+  .coll-card:hover {
+    border-color: var(--ink);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .coll-card-banner {
+    aspect-ratio: 16/9;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--blue), var(--blue-deep));
+  }
+  /* alterne les couleurs */
+  .coll-card:nth-child(3n) .coll-card-banner { background: linear-gradient(135deg, var(--red), var(--red-deep)); }
+  .coll-card:nth-child(3n+1) .coll-card-banner { background: linear-gradient(135deg, var(--blue), var(--blue-deep)); }
+  .coll-card:nth-child(3n+2) .coll-card-banner { background: linear-gradient(135deg, #16a34a, #166534); }
+
+  .coll-card-banner img {
+    width: 100%; height: 100%;
+    object-fit: contain;
+    padding: 20px;
+    filter: drop-shadow(0 6px 12px rgba(0,0,0,0.3));
+  }
+  .coll-card-banner::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(45deg, transparent 0, transparent 8px, rgba(255,255,255,0.04) 8px, rgba(255,255,255,0.04) 16px);
+  }
+  .coll-card-banner .badge-count {
+    position: absolute;
+    top: 12px; right: 12px;
+    padding: 5px 10px;
+    background: var(--ink);
+    color: var(--yellow);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    border-radius: var(--radius-pill);
+    font-weight: 700;
+    z-index: 2;
+  }
+  .coll-card-banner .badge-year {
+    position: absolute;
+    top: 12px; left: 12px;
+    padding: 5px 10px;
+    background: var(--white);
+    color: var(--ink);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    border-radius: var(--radius-pill);
+    font-weight: 700;
+    z-index: 2;
+  }
+  .coll-card-banner .placeholder-emoji {
+    font-size: 80px;
+    filter: drop-shadow(0 6px 12px rgba(0,0,0,0.3));
+  }
+
+  .coll-card-body { padding: 18px; }
+  .coll-card-title {
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 800;
+    margin-bottom: 4px;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+  .coll-card-subtitle {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--gray-text);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 14px;
+  }
+  .coll-card-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    padding-top: 14px;
+    border-top: 1px solid var(--gray-line);
+  }
+  .coll-stat-item .v {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .coll-stat-item .v.up { color: var(--green); }
+  .coll-stat-item .v.down { color: var(--red); }
+  .coll-stat-item .l {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--gray-text-2);
+    margin-top: 3px;
+  }
+
+  .sort-select {
+    padding: 10px 16px;
+    background: var(--white);
+    border: 1.5px solid var(--gray-line);
+    border-radius: var(--radius-pill);
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .view-toggle {
+    display: flex;
+    gap: 2px;
+    background: var(--gray-bg);
+    padding: 4px;
+    border-radius: var(--radius-pill);
+  }
+  .view-toggle button {
+    padding: 6px 14px;
+    border-radius: var(--radius-pill);
+    font-size: 12px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--gray-text);
+    transition: all 0.2s;
+  }
+  .view-toggle button.active {
+    background: var(--white);
+    color: var(--ink);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Stats banner */
+  .global-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  @media (max-width: 700px) {
+    .global-stats { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="topbar">
+  <div class="nav-inner">
+    <a href="index.html" class="logo">
+      <span class="logo-pokeball"></span>
+      ADI<span class="tcg-tag">TCG</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Accueil</a></li>
+      <li><a href="series.html" class="active">Séries</a></li>
+      <li><a href="marche.html">Marché</a></li>
+      <li><a href="trade.html">Échanges</a></li>
+      <li><a href="profil.html">Collection</a></li>
+    </ul>
+    <div class="nav-search">
+      <span class="nav-search-icon">⌕</span>
+      <input type="text" placeholder="Rechercher…">
+    </div>
+    <div class="nav-cta">
+      <button class="btn btn-ghost btn-small">Connexion</button>
+      <button class="btn btn-primary btn-small">S'inscrire</button>
+    </div>
+  </div>
+</nav>
+
+<!-- PAGE HEAD -->
+<section class="page-head">
+  <div class="container">
+    <div class="breadcrumb">
+      <a href="index.html">Accueil</a>
+      <span class="sep">/</span>
+      <span style="color: var(--ink);">Toutes les séries</span>
+    </div>
+    <h1 class="display-1">Toutes les <span class="italic-blue">séries</span> Pokémon</h1>
+    <p style="color: var(--gray-text); max-width: 640px; margin-top: 16px; font-size: 17px;">
+      L'intégralité des extensions du TCG Pokémon, de Base Set (1999) aux dernières sorties Scarlet & Violet. Données et images officielles via l'API TCGdex.
+    </p>
+  </div>
+</section>
+
+<!-- CONTENT -->
+<section style="padding: 40px 0 60px;">
+  <div class="container">
+
+    <!-- GLOBAL STATS -->
+    <div class="global-stats">
+      <div class="stat-card">
+        <div class="stat-label">Séries totales</div>
+        <div class="stat-value" id="stat-sets">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Cartes uniques</div>
+        <div class="stat-value" id="stat-cards">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Volume 30j</div>
+        <div class="stat-value">€2.4M</div>
+        <div class="stat-trend up">↑ +12.4%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Échanges actifs</div>
+        <div class="stat-value">847</div>
+        <div class="stat-trend up">↑ +5.2%</div>
+      </div>
+    </div>
+
+    <!-- TOOLBAR -->
+    <div class="page-toolbar">
+      <div class="filter-bar">
+        <button class="filter-chip active" data-filter="all">Toutes</button>
+        <button class="filter-chip" data-filter="recent">Récentes</button>
+        <button class="filter-chip" data-filter="wotc">WOTC</button>
+        <button class="filter-chip" data-filter="popular">Populaires</button>
+      </div>
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <select class="sort-select" id="sort-select">
+          <option value="date-desc">Plus récentes</option>
+          <option value="date-asc">Plus anciennes</option>
+          <option value="cards-desc">Plus de cartes</option>
+          <option value="cards-asc">Moins de cartes</option>
+          <option value="name">Nom A-Z</option>
+        </select>
+        <div class="view-toggle">
+          <button class="active">Grille</button>
+          <button>Liste</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SERIES BLOCKS -->
+    <div id="series-container">
+      <div class="loading-state">
+        <div class="pokeball-loader"></div>
+        Chargement des séries depuis TCGdex…
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <h4>ADI<span>TCG</span>.</h4>
+        <p>La référence française du trade de cartes Pokémon. Données via l'API TCGdex.</p>
+      </div>
+      <div class="footer-col"><h5>Explorer</h5><ul><li><a href="series.html">Séries</a></li><li><a href="marche.html">Marché</a></li></ul></div>
+      <div class="footer-col"><h5>Compte</h5><ul><li><a href="profil.html">Collection</a></li><li><a href="trade.html">Échanges</a></li></ul></div>
+      <div class="footer-col"><h5>Support</h5><ul><li><a href="#">FAQ</a></li><li><a href="#">Contact</a></li></ul></div>
+    </div>
+    <div class="footer-bottom">
+      <div>© 2026 ADITCG · Pokémon™ Nintendo / Game Freak</div>
+      <div>Données : TCGdex</div>
+    </div>
+  </div>
+</footer>
+
+<script src="tcgdex-api.js"></script>
+<script src="app.js"></script>
+<script>
+(async () => {
+  const container = document.getElementById('series-container');
+  let allSets = [];
+  let activeFilter = 'all';
+  let activeSort = 'date-desc';
+
+  function renderSetCard(set) {
+    const logo = window.TCGdex.getSetLogo(set, 'webp');
+    const total = set.cardCount?.total || 0;
+    const year = (set.releaseDate || '').slice(0, 4) || '—';
+    const floor = window.TCGdex.estimatePrice({ id: set.id, rarity: 'common', name: '' }) * 30;
+    const vol = (total * 12 + 200);
+    const trendVal = ((set.id || '').split('').reduce((a,c) => a + c.charCodeAt(0), 0) % 40) - 10;
+    return `
+      <a href="set.html?id=${set.id}" class="coll-card">
+        <div class="coll-card-banner">
+          <div class="badge-year">${year}</div>
+          <div class="badge-count">${total} cartes</div>
+          ${logo
+            ? `<img src="${logo}" alt="${set.name}" onerror="this.outerHTML='<div class=&quot;placeholder-emoji&quot;>🃏</div>'">`
+            : `<div class="placeholder-emoji">🃏</div>`}
+        </div>
+        <div class="coll-card-body">
+          <div class="coll-card-title">${set.name}</div>
+          <div class="coll-card-subtitle">${set.serie?.name || 'Série'} · ${set.id}</div>
+          <div class="coll-card-stats">
+            <div class="coll-stat-item"><div class="v">€${floor}</div><div class="l">Floor</div></div>
+            <div class="coll-stat-item"><div class="v">€${vol.toLocaleString('fr-FR')}</div><div class="l">Vol. 7j</div></div>
+            <div class="coll-stat-item"><div class="v ${trendVal >= 0 ? 'up' : 'down'}">${trendVal >= 0 ? '↑' : '↓'}${Math.abs(trendVal)}%</div><div class="l">Variation</div></div>
+          </div>
+        </div>
+      </a>`;
+  }
+
+  function applyFilter(sets) {
+    if (activeFilter === 'all') return sets;
+    if (activeFilter === 'recent') return sets.filter(s => ((s.releaseDate || '').slice(0,4)) >= '2022');
+    if (activeFilter === 'wotc') return sets.filter(s => (s.serie?.id === 'base' || (s.releaseDate || '') < '2003-08-00'));
+    if (activeFilter === 'popular') return sets.filter(s => (s.cardCount?.total || 0) >= 150);
+    return sets;
+  }
+
+  function applySort(sets) {
+    const list = [...sets];
+    if (activeSort === 'date-desc') return list.sort((a, b) => (b.releaseDate || '').localeCompare(a.releaseDate || ''));
+    if (activeSort === 'date-asc')  return list.sort((a, b) => (a.releaseDate || '').localeCompare(b.releaseDate || ''));
+    if (activeSort === 'cards-desc') return list.sort((a, b) => (b.cardCount?.total || 0) - (a.cardCount?.total || 0));
+    if (activeSort === 'cards-asc')  return list.sort((a, b) => (a.cardCount?.total || 0) - (b.cardCount?.total || 0));
+    if (activeSort === 'name')       return list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    return list;
+  }
+
+  function render() {
+    const filtered = applyFilter(allSets);
+    const sorted = applySort(filtered);
+
+    // Groupe par série
+    const grouped = {};
+    sorted.forEach(set => {
+      const key = set.serie?.id || 'autres';
+      const name = set.serie?.name || 'Autres';
+      if (!grouped[key]) grouped[key] = { name, sets: [] };
+      grouped[key].sets.push(set);
+    });
+
+    if (sorted.length === 0) {
+      container.innerHTML = '<div class="empty-state"><div class="emoji">🃏</div><h3>Aucune série</h3><p>Aucune série ne correspond à ce filtre.</p></div>';
+      return;
+    }
+
+    container.innerHTML = Object.values(grouped).map(grp => {
+      const totalCards = grp.sets.reduce((s, x) => s + (x.cardCount?.total || 0), 0);
+      return `
+        <div class="serie-block">
+          <div class="serie-block-head">
+            <div class="serie-block-name">${grp.name}</div>
+            <div class="serie-block-meta">
+              <strong>${grp.sets.length}</strong> sets · <strong>${totalCards.toLocaleString('fr-FR')}</strong> cartes
+            </div>
+          </div>
+          <div class="collections-grid">
+            ${grp.sets.map(renderSetCard).join('')}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  try {
+    allSets = await window.TCGdex.getAllSets();
+    document.getElementById('stat-sets').textContent = allSets.length;
+    const totalCards = allSets.reduce((s, x) => s + (x.cardCount?.total || 0), 0);
+    document.getElementById('stat-cards').textContent = totalCards.toLocaleString('fr-FR');
+    render();
+  } catch (e) {
+    console.error(e);
+    container.innerHTML = `<div class="empty-state"><div class="emoji">⚠️</div><h3>Impossible de charger les séries</h3><p>L'API TCGdex est temporairement indisponible. Vérifiez votre connexion et réessayez.</p><button class="btn btn-primary" style="margin-top: 16px;" onclick="location.reload()">Réessayer</button></div>`;
+  }
+
+  document.querySelectorAll('.filter-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      activeFilter = chip.dataset.filter;
+      render();
+    });
+  });
+  document.getElementById('sort-select').addEventListener('change', (e) => {
+    activeSort = e.target.value;
+    render();
+  });
+})();
+</script>
+</body>
+</html>

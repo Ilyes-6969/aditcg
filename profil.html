@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<script>
+// Anti-FOUC: apply theme before paint
+(function() {
+  try {
+    var saved = localStorage.getItem('aditcg_theme');
+    var theme = saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+  } catch(e) {}
+})();
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ma collection — ADITCG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,700;0,9..144,800;0,9..144,900;1,9..144,300&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+  /* PROFIL HEADER */
+  .profil-header {
+    background: linear-gradient(135deg, var(--blue), var(--blue-deep));
+    color: var(--white);
+    padding: 60px 0 80px;
+    position: relative;
+    overflow: hidden;
+  }
+  .profil-header::before {
+    content: '';
+    position: absolute;
+    top: -100px; right: -60px;
+    width: 320px; height: 320px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, var(--red) 50%, var(--white) 50%);
+    border: 8px solid var(--white);
+    opacity: 0.1;
+  }
+  .profil-header::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(45deg, transparent 0, transparent 14px, rgba(255,255,255,0.03) 14px, rgba(255,255,255,0.03) 28px);
+  }
+  .profil-head-grid {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 40px;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+  }
+  .profil-avatar {
+    width: 140px; height: 140px;
+    border-radius: 50%;
+    background: var(--yellow);
+    border: 5px solid var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: 56px;
+    font-weight: 800;
+    color: var(--ink);
+    box-shadow: var(--shadow-xl);
+  }
+  .profil-info h1 {
+    color: var(--white);
+    font-size: clamp(36px, 5vw, 56px);
+    margin-bottom: 8px;
+  }
+  .profil-info h1 .accent { color: var(--yellow); font-style: italic; font-weight: 300; }
+  .profil-info .username {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 16px;
+  }
+  .profil-meta {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    color: rgba(255,255,255,0.85);
+    font-size: 14px;
+  }
+  .profil-meta .dot { display: inline-block; width: 4px; height: 4px; border-radius: 50%; background: rgba(255,255,255,0.5); margin: 0 6px; vertical-align: middle; }
+  .profil-actions { display: flex; gap: 10px; flex-direction: column; }
+  .profil-actions .btn { min-width: 160px; }
+
+  /* STATS BAR */
+  .profil-stats-bar {
+    background: var(--white);
+    margin-top: -40px;
+    position: relative;
+    z-index: 5;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 24px 32px;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 24px;
+  }
+  .ps-item { text-align: center; }
+  .ps-item .v {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .ps-item .v.red { color: var(--red); }
+  .ps-item .v.green { color: var(--green); }
+  .ps-item .v.blue { color: var(--blue); }
+  .ps-item .l {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--gray-text);
+    margin-top: 6px;
+  }
+
+  /* TABS */
+  .tabs-bar {
+    display: flex;
+    gap: 4px;
+    border-bottom: 2px solid var(--gray-line);
+    margin: 50px 0 30px;
+    overflow-x: auto;
+  }
+  .tab-btn {
+    padding: 14px 24px;
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--gray-text);
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+    margin-bottom: -2px;
+  }
+  .tab-btn:hover { color: var(--ink); }
+  .tab-btn.active {
+    color: var(--red);
+    border-bottom-color: var(--red);
+  }
+  .tab-btn .badge {
+    margin-left: 6px;
+    padding: 2px 8px;
+    background: var(--gray-bg);
+    border-radius: var(--radius-pill);
+    font-family: var(--font-mono);
+    font-size: 10px;
+  }
+  .tab-btn.active .badge { background: var(--red); color: var(--white); }
+
+  /* BINDER GRID */
+  .pokemon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 20px;
+  }
+  .pkmn-card {
+    background: var(--white);
+    border: 1.5px solid var(--gray-line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: all 0.25s;
+    display: block;
+    position: relative;
+  }
+  .pkmn-card:hover {
+    border-color: var(--red);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+  }
+  .pkmn-card-img {
+    aspect-ratio: 245/342;
+    background: var(--gray-bg);
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .pkmn-card-img img { width: 100%; height: 100%; object-fit: contain; }
+  .pkmn-card-img .skel {
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, var(--gray-bg) 0%, var(--gray-line) 50%, var(--gray-bg) 100%);
+    background-size: 200% 100%;
+    animation: skel 1.4s infinite;
+    border-radius: var(--radius);
+  }
+  @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  .pkmn-card-info { padding: 12px 14px 14px; }
+  .pkmn-card-name {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pkmn-card-set {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--gray-text);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+  }
+  .pkmn-card-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 8px;
+    border-top: 1px solid var(--gray-line);
+  }
+  .pkmn-card-price {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 800;
+  }
+  .pkmn-card-trend {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--green);
+  }
+  .pkmn-card-trend.down { color: var(--red); }
+
+  /* PORTFOLIO */
+  .portfolio-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+    margin-bottom: 30px;
+  }
+  .portfolio-chart {
+    background: var(--white);
+    border: 1px solid var(--gray-line);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    min-height: 280px;
+  }
+  .portfolio-chart h3 {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+  .portfolio-chart .sub {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--gray-text);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 20px;
+  }
+  .chart-svg { width: 100%; height: 200px; }
+
+  .top-holdings {
+    background: var(--white);
+    border: 1px solid var(--gray-line);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+  }
+  .top-holdings h3 {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 20px;
+  }
+  .holding-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--gray-line);
+  }
+  .holding-row:last-child { border-bottom: none; }
+  .holding-rank {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--red);
+    width: 24px;
+  }
+  .holding-thumb {
+    width: 44px; height: 60px;
+    background: var(--gray-bg);
+    border-radius: 6px;
+    overflow: hidden;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .holding-thumb img { width: 100%; height: 100%; object-fit: contain; padding: 2px; }
+  .holding-info { flex: 1; min-width: 0; }
+  .holding-name {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .holding-set {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--gray-text);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .holding-price {
+    font-family: var(--font-display);
+    font-weight: 800;
+    color: var(--ink);
+    font-size: 16px;
+  }
+
+  @media (max-width: 900px) {
+    .profil-head-grid { grid-template-columns: 1fr; text-align: center; }
+    .profil-actions { flex-direction: row; justify-content: center; }
+    .profil-stats-bar { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .portfolio-grid { grid-template-columns: 1fr; }
+    .pokemon-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="nav-inner">
+    <a href="index.html" class="logo">
+      <span class="logo-pokeball"></span>
+      ADI<span class="tcg-tag">TCG</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Accueil</a></li>
+      <li><a href="series.html">Séries</a></li>
+      <li><a href="marche.html">Marché</a></li>
+      <li><a href="trade.html">Échanges</a></li>
+      <li><a href="profil.html" class="active">Collection</a></li>
+    </ul>
+    <div class="nav-search">
+      <span class="nav-search-icon">⌕</span>
+      <input type="text" placeholder="Rechercher…">
+    </div>
+    <div class="nav-cta">
+      <button class="btn btn-ghost btn-small">Connexion</button>
+      <button class="btn btn-primary btn-small">S'inscrire</button>
+    </div>
+  </div>
+</nav>
+
+<!-- HEADER -->
+<section class="profil-header">
+  <div class="container">
+    <div class="profil-head-grid">
+      <div class="profil-avatar">A</div>
+      <div class="profil-info">
+        <h1 class="display-1">Alex <span class="accent">Dresseur</span></h1>
+        <div class="username">@alex_pkmn · Membre depuis 2024</div>
+        <div class="profil-meta">
+          <span>⭐ 4.9/5 (87 avis)</span>
+          <span class="dot"></span>
+          <span>📦 142 ventes</span>
+          <span class="dot"></span>
+          <span>🤝 56 échanges</span>
+          <span class="dot"></span>
+          <span>📍 Lyon, France</span>
+        </div>
+      </div>
+      <div class="profil-actions">
+        <button class="btn btn-yellow">+ Ajouter carte</button>
+        <button class="btn btn-ghost" style="background: rgba(255,255,255,0.1); color: white; border-color: rgba(255,255,255,0.3);">⚙ Paramètres</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section style="padding: 0;">
+  <div class="container">
+    <div class="profil-stats-bar">
+      <div class="ps-item">
+        <div class="v" id="stat-cards">—</div>
+        <div class="l">Cartes possédées</div>
+      </div>
+      <div class="ps-item">
+        <div class="v red" id="stat-value">€—</div>
+        <div class="l">Valeur portefeuille</div>
+      </div>
+      <div class="ps-item">
+        <div class="v green">↑ +14.2%</div>
+        <div class="l">Performance 30j</div>
+      </div>
+      <div class="ps-item">
+        <div class="v blue">12</div>
+        <div class="l">Séries complétées</div>
+      </div>
+      <div class="ps-item">
+        <div class="v">7</div>
+        <div class="l">Cartes PSA 10</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TABS + CONTENT -->
+<section style="padding: 0 0 60px;">
+  <div class="container">
+    <div class="tabs-bar">
+      <button class="tab-btn active" data-tab="collection">Ma collection <span class="badge" id="tab-count-coll">—</span></button>
+      <button class="tab-btn" data-tab="portfolio">Portefeuille</button>
+      <button class="tab-btn" data-tab="wishlist">Favoris <span class="badge">12</span></button>
+      <button class="tab-btn" data-tab="activity">Activité</button>
+    </div>
+
+    <!-- TAB: COLLECTION -->
+    <div class="tab-content" id="tab-collection">
+      <div class="pokemon-grid" id="collection-grid">
+        <div class="loading-state" style="grid-column: 1/-1;">
+          <div class="pokeball-loader"></div>
+          Chargement de votre collection…
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: PORTFOLIO -->
+    <div class="tab-content" id="tab-portfolio" style="display: none;">
+      <div class="portfolio-grid">
+        <div class="portfolio-chart">
+          <h3>Évolution de votre portefeuille</h3>
+          <div class="sub">★ 12 derniers mois · valeur estimée</div>
+          <svg class="chart-svg" viewBox="0 0 600 200" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="chartGrad" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stop-color="var(--red)" stop-opacity="0.3"/>
+                <stop offset="100%" stop-color="var(--red)" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path d="M0,160 L50,150 L100,140 L150,130 L200,135 L250,110 L300,105 L350,90 L400,85 L450,70 L500,65 L550,40 L600,30 L600,200 L0,200 Z" fill="url(#chartGrad)"/>
+            <path d="M0,160 L50,150 L100,140 L150,130 L200,135 L250,110 L300,105 L350,90 L400,85 L450,70 L500,65 L550,40 L600,30" fill="none" stroke="var(--red)" stroke-width="3"/>
+          </svg>
+        </div>
+        <div class="top-holdings">
+          <h3>Top holdings</h3>
+          <div id="top-holdings"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: WISHLIST -->
+    <div class="tab-content" id="tab-wishlist" style="display: none;">
+      <div class="empty-state">
+        <div class="emoji">♡</div>
+        <h3>Votre liste de favoris</h3>
+        <p>Cliquez sur l'icône cœur sur une carte pour l'ajouter ici.</p>
+        <a href="marche.html" class="btn btn-primary" style="margin-top: 16px;">Explorer le marché</a>
+      </div>
+    </div>
+
+    <!-- TAB: ACTIVITY -->
+    <div class="tab-content" id="tab-activity" style="display: none;">
+      <div class="empty-state">
+        <div class="emoji">📊</div>
+        <h3>Historique d'activité</h3>
+        <p>Vos achats, ventes et échanges apparaîtront ici.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand"><h4>ADI<span>TCG</span>.</h4><p>La référence française du trade Pokémon.</p></div>
+      <div class="footer-col"><h5>Explorer</h5><ul><li><a href="series.html">Séries</a></li><li><a href="marche.html">Marché</a></li></ul></div>
+      <div class="footer-col"><h5>Compte</h5><ul><li><a href="profil.html">Collection</a></li></ul></div>
+      <div class="footer-col"><h5>Support</h5><ul><li><a href="#">FAQ</a></li></ul></div>
+    </div>
+    <div class="footer-bottom"><div>© 2026 ADITCG</div><div>Données : TCGdex</div></div>
+  </div>
+</footer>
+
+<script src="tcgdex-api.js"></script>
+<script src="app.js"></script>
+<script>
+(async () => {
+  // TABS
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+      document.getElementById(`tab-${btn.dataset.tab}`).style.display = 'block';
+    });
+  });
+
+  // LOAD ICONIC CARDS for fake "collection"
+  const ids = [
+    'base1-4', 'base1-15', 'base1-25', 'base1-11',
+    'sv03.5-9', 'sv03.5-25', 'sv03.5-150', 'sv03.5-151',
+    'swsh4-44', 'swsh4-29', 'swsh4-188',
+    'neo1-9', 'neo1-25',
+    'xy12-12', 'xy12-25',
+    'swsh7-150', 'swsh7-215'
+  ];
+
+  try {
+    const cards = await Promise.all(ids.map(id => window.TCGdex.getCardDetail(id).catch(() => null)));
+    const valid = cards.filter(Boolean);
+
+    // STATS
+    const totalValue = valid.reduce((s, c) => s + window.TCGdex.estimatePrice(c), 0);
+    document.getElementById('stat-cards').textContent = valid.length;
+    document.getElementById('stat-value').textContent = `€${totalValue.toLocaleString('fr-FR')}`;
+    document.getElementById('tab-count-coll').textContent = valid.length;
+
+    // COLLECTION GRID
+    document.getElementById('collection-grid').innerHTML = valid.map(c => {
+      const img = window.TCGdex.getCardImage(c, 'low', 'webp');
+      const price = window.TCGdex.estimatePrice(c);
+      const trend = window.TCGdex.estimateTrend(c);
+      return `
+        <a href="carte.html?id=${c.id}" class="pkmn-card">
+          <div class="pkmn-card-img">
+            <img src="${img}" alt="${c.name}" loading="lazy"
+              onerror="this.parentNode.innerHTML='<div class=&quot;skel&quot;></div>'">
+          </div>
+          <div class="pkmn-card-info">
+            <div class="pkmn-card-name">${c.name}</div>
+            <div class="pkmn-card-set">${(c.set?.name || '').substring(0, 22)}</div>
+            <div class="pkmn-card-foot">
+              <div class="pkmn-card-price">€${price}</div>
+              <div class="pkmn-card-trend ${trend >= 0 ? '' : 'down'}">${trend >= 0 ? '↑' : '↓'}${Math.abs(trend)}%</div>
+            </div>
+          </div>
+        </a>`;
+    }).join('');
+
+    // TOP HOLDINGS (top 5 by value)
+    const sorted = [...valid].sort((a, b) => window.TCGdex.estimatePrice(b) - window.TCGdex.estimatePrice(a)).slice(0, 5);
+    document.getElementById('top-holdings').innerHTML = sorted.map((c, i) => {
+      const img = window.TCGdex.getCardImage(c, 'low', 'webp');
+      const price = window.TCGdex.estimatePrice(c);
+      return `
+        <div class="holding-row">
+          <div class="holding-rank">#${i + 1}</div>
+          <a href="carte.html?id=${c.id}" class="holding-thumb"><img src="${img}" alt=""></a>
+          <div class="holding-info">
+            <div class="holding-name">${c.name}</div>
+            <div class="holding-set">${(c.set?.name || '').substring(0, 22)}</div>
+          </div>
+          <div class="holding-price">€${price}</div>
+        </div>`;
+    }).join('');
+
+  } catch (e) {
+    console.error(e);
+    document.getElementById('collection-grid').innerHTML = '<div class="empty-state" style="grid-column: 1/-1;"><div class="emoji">⚠️</div><h3>Erreur de chargement</h3><p>Impossible de charger la collection.</p></div>';
+  }
+})();
+</script>
+</body>
+</html>

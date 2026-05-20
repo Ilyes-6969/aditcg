@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<script>
+// Anti-FOUC: apply theme before paint
+(function() {
+  try {
+    var saved = localStorage.getItem('aditcg_theme');
+    var theme = saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+  } catch(e) {}
+})();
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carte — ADITCG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,700;0,9..144,800;0,9..144,900;1,9..144,300&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .page-head {
+    padding: 30px 0 20px;
+    background: var(--cream);
+    border-bottom: 1px solid var(--gray-line);
+  }
+  .breadcrumb {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--gray-text);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+  .breadcrumb a:hover { color: var(--blue); }
+  .breadcrumb .sep { margin: 0 8px; opacity: 0.5; }
+
+  .card-detail-grid {
+    display: grid;
+    grid-template-columns: 400px 1fr;
+    gap: 60px;
+    padding: 40px 0;
+  }
+
+  .card-image-col {
+    position: sticky;
+    top: 100px;
+    align-self: start;
+  }
+  .big-card-img {
+    aspect-ratio: 245/342;
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-xl);
+    border: 1px solid var(--gray-line);
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s;
+  }
+  .big-card-img:hover { transform: scale(1.02); }
+  .big-card-img img { width: 100%; height: 100%; object-fit: contain; }
+  .big-card-img .skel {
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, var(--gray-bg) 0%, var(--gray-line) 50%, var(--gray-bg) 100%);
+    background-size: 200% 100%;
+    animation: skel 1.4s infinite;
+    border-radius: var(--radius);
+  }
+  @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  .image-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    justify-content: center;
+  }
+
+  .info-col h1 {
+    font-size: clamp(36px, 5vw, 56px);
+    margin-bottom: 8px;
+  }
+  .info-col h1 .rarity-accent { color: var(--red); font-style: italic; font-weight: 300; font-size: 0.7em; }
+  .info-col .subtitle {
+    font-size: 16px;
+    color: var(--gray-text);
+    margin-bottom: 24px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .info-col .subtitle .dot {
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--gray-text-2);
+  }
+  .info-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 32px; }
+
+  .price-hero {
+    background: var(--white);
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    margin-bottom: 24px;
+  }
+  .price-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 20px;
+    gap: 24px;
+  }
+  .price-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--gray-text);
+    margin-bottom: 6px;
+  }
+  .price-current {
+    font-family: var(--font-display);
+    font-size: 48px;
+    font-weight: 900;
+    color: var(--red);
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+  .price-trend {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--green);
+    font-weight: 700;
+  }
+  .price-trend.down { color: var(--red); }
+  .price-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .stats-section {
+    background: var(--gray-bg);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  .stat-item { text-align: left; }
+  .stat-item .l {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--gray-text);
+    margin-bottom: 6px;
+  }
+  .stat-item .v {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--ink);
+    line-height: 1;
+  }
+
+  /* CARD DETAILS */
+  .card-details {
+    background: var(--white);
+    border: 1px solid var(--gray-line);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    margin-bottom: 24px;
+  }
+  .card-details h3 {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 20px;
+    letter-spacing: -0.02em;
+  }
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--gray-line);
+    font-size: 14px;
+  }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-row .l { color: var(--gray-text); font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; }
+  .detail-row .v { font-weight: 600; color: var(--ink); }
+
+  /* RELATED */
+  .related-section { padding: 60px 0; background: var(--white); }
+  .pokemon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 20px;
+  }
+  .pkmn-card {
+    background: var(--white);
+    border: 1.5px solid var(--gray-line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: all 0.25s;
+    display: block;
+  }
+  .pkmn-card:hover {
+    border-color: var(--red);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+  }
+  .pkmn-card-img {
+    aspect-ratio: 245/342;
+    background: var(--gray-bg);
+    padding: 8px;
+  }
+  .pkmn-card-img img { width: 100%; height: 100%; object-fit: contain; }
+  .pkmn-card-info { padding: 12px 14px 14px; }
+  .pkmn-card-name {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pkmn-card-price {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--ink);
+  }
+
+  @media (max-width: 900px) {
+    .card-detail-grid { grid-template-columns: 1fr; gap: 30px; }
+    .card-image-col { position: static; max-width: 360px; margin: 0 auto; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .pokemon-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="nav-inner">
+    <a href="index.html" class="logo">
+      <span class="logo-pokeball"></span>
+      ADI<span class="tcg-tag">TCG</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Accueil</a></li>
+      <li><a href="series.html">Séries</a></li>
+      <li><a href="marche.html" class="active">Marché</a></li>
+      <li><a href="trade.html">Échanges</a></li>
+      <li><a href="profil.html">Collection</a></li>
+    </ul>
+    <div class="nav-search">
+      <span class="nav-search-icon">⌕</span>
+      <input type="text" placeholder="Rechercher…">
+    </div>
+    <div class="nav-cta">
+      <button class="btn btn-ghost btn-small">Connexion</button>
+      <button class="btn btn-primary btn-small">S'inscrire</button>
+    </div>
+  </div>
+</nav>
+
+<section class="page-head">
+  <div class="container">
+    <div class="breadcrumb" id="breadcrumb">
+      <a href="index.html">Accueil</a>
+      <span class="sep">/</span>
+      <a href="series.html">Séries</a>
+      <span class="sep">/</span>
+      <span style="color: var(--ink);" id="bc-card">Chargement…</span>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="card-detail-grid" id="card-detail">
+      <div class="loading-state" style="grid-column: 1/-1;">
+        <div class="pokeball-loader"></div>
+        Chargement de la carte…
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="related-section">
+  <div class="container">
+    <div class="section-header-row" style="margin-bottom: 30px;">
+      <div>
+        <div class="eyebrow">★ Cartes similaires</div>
+        <h2 class="display-2" style="margin-top: 16px;">Du même <span class="italic-blue">set</span></h2>
+      </div>
+    </div>
+    <div class="pokemon-grid" id="related-grid"></div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand"><h4>ADI<span>TCG</span>.</h4><p>La référence française du trade Pokémon.</p></div>
+      <div class="footer-col"><h5>Explorer</h5><ul><li><a href="series.html">Séries</a></li><li><a href="marche.html">Marché</a></li></ul></div>
+      <div class="footer-col"><h5>Compte</h5><ul><li><a href="profil.html">Collection</a></li></ul></div>
+      <div class="footer-col"><h5>Support</h5><ul><li><a href="#">FAQ</a></li></ul></div>
+    </div>
+    <div class="footer-bottom"><div>© 2026 ADITCG</div><div>Données : TCGdex</div></div>
+  </div>
+</footer>
+
+<script src="tcgdex-api.js"></script>
+<script src="app.js"></script>
+<script>
+(async () => {
+  const params = new URLSearchParams(window.location.search);
+  const cardId = params.get('id');
+
+  if (!cardId) {
+    document.getElementById('card-detail').innerHTML = '<div class="empty-state" style="grid-column: 1/-1;"><div class="emoji">🃏</div><h3>Carte non spécifiée</h3><a href="marche.html" class="btn btn-primary" style="margin-top: 16px;">Voir le marché</a></div>';
+    return;
+  }
+
+  try {
+    const card = await window.TCGdex.getCardDetail(cardId);
+    if (!card) throw new Error('Card not found');
+
+    document.title = `${card.name} — ${card.set?.name || 'Carte'} — ADITCG`;
+    document.getElementById('bc-card').textContent = card.name;
+
+    const img = window.TCGdex.getCardImage(card, 'high', 'webp');
+    const priceData = window.TCGdex.getRealPrice(card);
+    const price = priceData.price;
+    const trend = priceData.trend30d !== null ? priceData.trend30d : window.TCGdex.estimateTrend(card);
+    const isReal = priceData.source !== 'estimation';
+    const sourceLabel = isReal ? `Source : ${priceData.source}` : 'Prix estimé';
+
+    document.getElementById('card-detail').innerHTML = `
+      <div class="card-image-col">
+        <div class="big-card-img">
+          <img src="${img}" alt="${card.name}"
+            onerror="this.parentNode.innerHTML='<div class=&quot;skel&quot;></div>'">
+        </div>
+        <div class="image-actions">
+          <button class="btn btn-ghost btn-small">↻ Pivoter</button>
+          <button class="btn btn-ghost btn-small">⊕ Zoom</button>
+          <button class="btn btn-ghost btn-small">♡ Favori</button>
+        </div>
+      </div>
+
+      <div class="info-col">
+        <div class="eyebrow">★ ${card.set?.name || 'Set'} · ${card.localId || '?'}/${card.set?.cardCount?.total || '?'}</div>
+        <h1 class="display-1" style="margin-top: 12px;">${card.name} <span class="rarity-accent">${card.rarity || ''}</span></h1>
+        <div class="subtitle">
+          ${card.illustrator ? `<span>Illustré par ${card.illustrator}</span><span class="dot"></span>` : ''}
+          <span>${card.category || 'Pokémon'}</span>
+          ${card.hp ? `<span class="dot"></span><span>HP ${card.hp}</span>` : ''}
+          ${card.types ? `<span class="dot"></span><span>Type ${card.types.join(', ')}</span>` : ''}
+        </div>
+        <div class="info-tags">
+          <span class="tag red">${card.rarity || 'Standard'}</span>
+          <span class="tag blue">${card.set?.name || 'Set'}</span>
+          <span class="tag">${card.id}</span>
+        </div>
+
+        <div class="price-hero">
+          <div class="price-row">
+            <div>
+              <div class="price-label">Cote actuelle · ${isReal ? 'Cardmarket' : 'Estimation'}</div>
+              <div class="price-current">${window.TCGdex.formatPrice(price)}</div>
+              <div class="price-source-badge ${isReal ? 'real' : 'estimated'}">
+                <span class="dot"></span> ${sourceLabel}
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <div class="price-label">Sur 30 jours</div>
+              <div class="price-trend ${trend >= 0 ? '' : 'down'}">${trend >= 0 ? '↑' : '↓'} ${Math.abs(trend)}%</div>
+            </div>
+          </div>
+          <div class="price-actions">
+            <button class="btn btn-primary">Acheter maintenant</button>
+            <button class="btn btn-secondary">Faire une offre</button>
+          </div>
+        </div>
+
+        <div class="stats-section">
+          <div class="stats-grid">
+            <div class="stat-item">
+              <div class="l">Plus bas (low)</div>
+              <div class="v">${priceData.low !== null ? window.TCGdex.formatPrice(priceData.low) : '—'}</div>
+            </div>
+            <div class="stat-item">
+              <div class="l">${priceData.holoPrice !== null ? 'Version Holo' : 'PSA 10 (est.)'}</div>
+              <div class="v">${priceData.holoPrice !== null ? window.TCGdex.formatPrice(priceData.holoPrice) : window.TCGdex.formatPrice(price * 3.5)}</div>
+            </div>
+            <div class="stat-item">
+              <div class="l">Ventes 30j</div>
+              <div class="v">${Math.floor(20 + Math.random() * 80)}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-details">
+          <h3>Détails techniques</h3>
+          <div class="detail-row"><span class="l">Nom</span><span class="v">${card.name}</span></div>
+          <div class="detail-row"><span class="l">Set</span><span class="v">${card.set?.name || '—'}</span></div>
+          <div class="detail-row"><span class="l">Numéro</span><span class="v">${card.localId || '—'}/${card.set?.cardCount?.total || '—'}</span></div>
+          <div class="detail-row"><span class="l">Rareté</span><span class="v">${card.rarity || '—'}</span></div>
+          ${card.illustrator ? `<div class="detail-row"><span class="l">Illustrateur</span><span class="v">${card.illustrator}</span></div>` : ''}
+          ${card.hp ? `<div class="detail-row"><span class="l">PV</span><span class="v">${card.hp}</span></div>` : ''}
+          ${card.types ? `<div class="detail-row"><span class="l">Type</span><span class="v">${card.types.join(', ')}</span></div>` : ''}
+          ${card.stage ? `<div class="detail-row"><span class="l">Niveau</span><span class="v">${card.stage}</span></div>` : ''}
+          ${card.category ? `<div class="detail-row"><span class="l">Catégorie</span><span class="v">${card.category}</span></div>` : ''}
+        </div>
+      </div>
+    `;
+
+    // Related cards from same set
+    if (card.set?.id) {
+      const setDetail = await window.TCGdex.getSetDetail(card.set.id);
+      if (setDetail?.cards) {
+        const related = setDetail.cards.filter(c => c.id !== card.id).slice(0, 10);
+        document.getElementById('related-grid').innerHTML = related.map(c => {
+          const ri = window.TCGdex.getCardImage(c, 'low', 'webp');
+          const rp = window.TCGdex.estimatePrice(c);
+          return `
+            <a href="carte.html?id=${c.id}" class="pkmn-card">
+              <div class="pkmn-card-img"><img src="${ri}" alt="${c.name}" loading="lazy"></div>
+              <div class="pkmn-card-info">
+                <div class="pkmn-card-name">${c.name}</div>
+                <div class="pkmn-card-price">€${rp}</div>
+              </div>
+            </a>`;
+        }).join('');
+      }
+    }
+
+  } catch (e) {
+    console.error(e);
+    document.getElementById('card-detail').innerHTML = '<div class="empty-state" style="grid-column: 1/-1;"><div class="emoji">⚠️</div><h3>Carte introuvable</h3><a href="marche.html" class="btn btn-primary" style="margin-top: 16px;">← Retour au marché</a></div>';
+  }
+})();
+</script>
+
+</body>
+</html>
