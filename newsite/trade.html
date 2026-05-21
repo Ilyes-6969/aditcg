@@ -366,8 +366,18 @@
     .composer-divider { transform: rotate(90deg); padding: 16px; }
     .trade-card { grid-template-columns: 1fr; }
     .trade-cards-row { grid-template-columns: 1fr; }
-    .history-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .history-row { grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px 14px; font-size: 13px; }
     .history-row.head { display: none; }
+    .composer-head { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .composer-head h2 { font-size: 22px; }
+    .slot-grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .composer-side { padding: 16px; }
+  }
+
+  @media (max-width: 500px) {
+    .slot-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .composer-foot { flex-direction: column; gap: 10px; }
+    .composer-foot .btn { width: 100%; }
   }
 </style>
 </head>

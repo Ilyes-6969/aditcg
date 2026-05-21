@@ -357,9 +357,9 @@
             onerror="this.parentNode.innerHTML='<div class=&quot;skel&quot;></div>'">
         </div>
         <div class="image-actions">
-          <button class="btn btn-ghost btn-small">↻ Pivoter</button>
-          <button class="btn btn-ghost btn-small">⊕ Zoom</button>
-          <button class="btn btn-ghost btn-small">♡ Favori</button>
+          <button class="btn btn-ghost btn-small" id="btn-rotate">↻ Pivoter</button>
+          <button class="btn btn-ghost btn-small" id="btn-zoom">⊕ Zoom</button>
+          <button class="btn btn-ghost btn-small" id="btn-fav">♡ Favori</button>
         </div>
       </div>
 
@@ -461,7 +461,7 @@
     if (!card) return;
 
     // Favori button
-    const favBtn = document.querySelector('.image-actions button:nth-child(3)');
+    const favBtn = document.getElementById('btn-fav');
     if (favBtn) {
       const isFav = window.Storage.isFavorite(card.id);
       favBtn.innerHTML = isFav ? '♥ Favori' : '♡ Favori';
@@ -475,7 +475,7 @@
     }
 
     // Zoom button → opens image fullscreen
-    const zoomBtn = document.querySelector('.image-actions button:nth-child(2)');
+    const zoomBtn = document.getElementById('btn-zoom');
     if (zoomBtn) {
       zoomBtn.addEventListener('click', () => {
         const img = window.TCGdex.getCardImage(card, 'high', 'webp');
@@ -489,7 +489,7 @@
     }
 
     // Rotate button → toggles class
-    const rotBtn = document.querySelector('.image-actions button:nth-child(1)');
+    const rotBtn = document.getElementById('btn-rotate');
     if (rotBtn) {
       let rotated = false;
       rotBtn.addEventListener('click', () => {

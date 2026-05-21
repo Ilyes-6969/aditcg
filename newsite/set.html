@@ -514,6 +514,8 @@
     document.getElementById('completion').style.display = 'none';
   }
 
+  let displayedSetCount = 36; // initial cards to render
+
   function renderCards() {
     const grid = document.getElementById('cards-grid');
     let filtered = allCards;
@@ -529,7 +531,9 @@
       return;
     }
 
-    grid.innerHTML = filtered.map(c => {
+    const toRender = filtered.slice(0, displayedSetCount);
+
+    grid.innerHTML = toRender.map(c => {
       const img = window.TCGdex.getCardImage(c, 'low', 'webp');
       const price = window.TCGdex.estimatePrice(c);
       const isOwned = ownedSet.has(c.id);
@@ -556,6 +560,46 @@
           </a>
         </div>`;
     }).join('');
+
+    // Load more button
+    let moreContainer = document.getElementById('set-load-more');
+    if (!moreContainer) {
+      moreContainer = document.createElement('div');
+      moreContainer.id = 'set-load-more';
+      grid.parentNode.insertBefore(moreContainer, grid.nextSibling);
+    }
+
+    if (filtered.length > displayedSetCount) {
+      moreContainer.innerHTML = `
+        <button class="btn btn-ghost" id="set-show-more" style="margin: 30px auto; display: block; min-width: 220px;">
+          Voir ${Math.min(36, filtered.length - displayedSetCount)} cartes de plus
+          <span style="opacity: 0.6; margin-left: 8px;">(${displayedSetCount}/${filtered.length})</span>
+        </button>
+      `;
+      document.getElementById('set-show-more').addEventListener('click', () => {
+        displayedSetCount += 36;
+        renderCards();
+        // Smooth scroll after render
+        setTimeout(() => {
+          window.scrollBy({ top: 200, behavior: 'smooth' });
+        }, 50);
+      });
+
+      // Auto-load when scrolling near the bottom (IntersectionObserver)
+      const btn = document.getElementById('set-show-more');
+      if (btn && 'IntersectionObserver' in window) {
+        const observer = new IntersectionObserver((entries) => {
+          if (entries[0].isIntersecting) {
+            displayedSetCount += 36;
+            observer.disconnect();
+            renderCards();
+          }
+        }, { rootMargin: '300px' });
+        observer.observe(btn);
+      }
+    } else {
+      moreContainer.innerHTML = '';
+    }
   }
 
   // Delegated handlers for owned/favorite toggles
@@ -606,6 +650,7 @@
       document.querySelectorAll('#rarity-filter .filter-chip').forEach(c => c.classList.remove('active'));
       chip.classList.add('active');
       activeFilter = chip.dataset.rarity;
+      displayedSetCount = 36;
       renderCards();
     });
   });

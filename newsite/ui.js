@@ -587,6 +587,132 @@
   }
 
   // ============================================
+  // MOBILE MENU (burger + drawer)
+  // ============================================
+  function installMobileMenu() {
+    const navInner = document.querySelector('.nav-inner');
+    if (!navInner) return;
+    if (document.querySelector('.mobile-menu-toggle')) return;
+
+    // Add burger button (before .nav-cta)
+    const burger = document.createElement('button');
+    burger.className = 'mobile-menu-toggle';
+    burger.setAttribute('aria-label', 'Menu');
+    burger.innerHTML = '<span></span><span></span><span></span>';
+    const navCta = navInner.querySelector('.nav-cta');
+    if (navCta) navInner.insertBefore(burger, navCta); else navInner.appendChild(burger);
+
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'mobile-drawer-overlay';
+    document.body.appendChild(overlay);
+
+    // Create drawer
+    const drawer = document.createElement('div');
+    drawer.className = 'mobile-drawer';
+
+    const navLinks = document.querySelector('.nav-links');
+    const linksHTML = navLinks ? navLinks.innerHTML : '';
+
+    const user = window.Auth?.getCurrentUser();
+    const userSection = user
+      ? `
+        <div class="mobile-drawer-section">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+            <div style="width:42px; height:42px; border-radius:50%; background:var(--yellow); border:2px solid #1a1a2e; display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-weight:800; font-size:18px; color:#1a1a2e;">${user.avatar}</div>
+            <div>
+              <div style="font-weight:700; font-size:14px;">${user.name}</div>
+              <div style="font-family:var(--font-mono); font-size:11px; color:var(--gray-text);">@${user.username}</div>
+            </div>
+          </div>
+          <button class="btn btn-ghost" id="mobile-logout">Déconnexion</button>
+        </div>
+      `
+      : `
+        <div class="mobile-drawer-section">
+          <button class="btn btn-primary" id="mobile-signup">S'inscrire</button>
+          <button class="btn btn-ghost" id="mobile-login">Connexion</button>
+        </div>
+      `;
+
+    drawer.innerHTML = `
+      <div class="mobile-drawer-search">
+        <span style="color: var(--gray-text);">⌕</span>
+        <input type="text" placeholder="Rechercher une carte…" id="mobile-search-input">
+      </div>
+      <ul>${linksHTML}</ul>
+      ${userSection}
+    `;
+    document.body.appendChild(drawer);
+
+    function open() {
+      drawer.classList.add('open');
+      overlay.classList.add('open');
+      burger.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function close() {
+      drawer.classList.remove('open');
+      overlay.classList.remove('open');
+      burger.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    burger.addEventListener('click', () => {
+      drawer.classList.contains('open') ? close() : open();
+    });
+    overlay.addEventListener('click', close);
+    // Close on link click
+    drawer.querySelectorAll('a').forEach(a => a.addEventListener('click', close));
+
+    // Mobile auth buttons
+    document.getElementById('mobile-login')?.addEventListener('click', () => { close(); openLogin(); });
+    document.getElementById('mobile-signup')?.addEventListener('click', () => { close(); openSignup(); });
+    document.getElementById('mobile-logout')?.addEventListener('click', async () => {
+      close();
+      const ok = await confirm({ title: 'Déconnexion ?', message: 'Vous serez déconnecté.', confirmText: 'Me déconnecter' });
+      if (ok) {
+        window.Auth.logout();
+        window.location.href = 'index.html';
+      }
+    });
+
+    // Mobile search (same logic as desktop)
+    const mInput = document.getElementById('mobile-search-input');
+    let mTimeout;
+    mInput?.addEventListener('input', (e) => {
+      clearTimeout(mTimeout);
+      const q = e.target.value;
+      mTimeout = setTimeout(async () => {
+        if (!q || q.length < 2) return;
+        try {
+          const cards = await window.TCGdex.searchCards(q);
+          // Show results in drawer (simple version)
+          let resultsDiv = drawer.querySelector('.mobile-search-results');
+          if (!resultsDiv) {
+            resultsDiv = document.createElement('div');
+            resultsDiv.className = 'mobile-search-results';
+            drawer.querySelector('.mobile-drawer-search').after(resultsDiv);
+          }
+          const top = cards.slice(0, 5);
+          if (top.length === 0) {
+            resultsDiv.innerHTML = '<div style="padding:12px; text-align:center; color:var(--gray-text); font-size:13px;">Aucun résultat</div>';
+            return;
+          }
+          resultsDiv.innerHTML = '<div style="margin-bottom:20px;">' + top.map(c => `
+            <a href="carte.html?id=${c.id}" style="display:flex; align-items:center; gap:10px; padding:8px; border-radius: 8px; font-size:13px; color:inherit;">
+              <div style="width:30px; height:42px; background:var(--gray-bg); border-radius:4px; flex-shrink:0; overflow:hidden;">
+                <img src="${window.TCGdex.getCardImage(c, 'low', 'webp')}" alt="" style="width:100%; height:100%; object-fit:contain;">
+              </div>
+              <div style="font-weight:600;">${c.name}</div>
+            </a>
+          `).join('') + '</div>';
+        } catch (e) { console.error(e); }
+      }, 300);
+    });
+  }
+
+  // ============================================
   // NAVBAR SEARCH
   // ============================================
   function installNavbarSearch() {
@@ -774,6 +900,8 @@
     installNavbar();
     // Install search
     installNavbarSearch();
+    // Install mobile menu (after navbar is built)
+    installMobileMenu();
   }
 
   if (document.readyState === 'loading') {

@@ -72,6 +72,7 @@
     padding-bottom: 12px;
     border-bottom: 1px solid var(--gray-line);
   }
+  .sidebar-close-mobile { display: none; }
   .filter-group { margin-bottom: 28px; }
   .filter-option {
     display: flex;
@@ -205,9 +206,55 @@
   }
   .pkmn-card-trend.down { color: var(--red); }
 
+  /* Mobile filter toggle button (only shown on small screens) */
+  .mobile-filter-toggle {
+    display: none;
+    width: 100%;
+    padding: 12px;
+    background: var(--ink);
+    color: #fff;
+    border-radius: var(--radius);
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 16px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .mobile-filter-toggle::before { content: '⚙'; font-size: 16px; }
+
   @media (max-width: 900px) {
     .market-layout { grid-template-columns: 1fr; }
-    .sidebar { position: static; }
+    .mobile-filter-toggle { display: flex; }
+    .sidebar {
+      position: fixed;
+      top: 0; right: 0;
+      height: 100vh;
+      max-height: 100vh;
+      width: 100%;
+      max-width: 360px;
+      border-radius: 0;
+      transform: translateX(100%);
+      transition: transform 0.3s;
+      z-index: 950;
+      overflow-y: auto;
+      padding-top: 60px;
+    }
+    .sidebar.open { transform: translateX(0); }
+    .sidebar .sidebar-close-mobile {
+      position: absolute;
+      top: 16px; right: 20px;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--gray-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 22px;
+      color: var(--ink);
+      border: none;
+    }
     .pokemon-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
   }
 </style>
@@ -258,6 +305,7 @@
 
       <!-- SIDEBAR FILTRES -->
       <aside class="sidebar">
+        <button class="sidebar-close-mobile" aria-label="Fermer">×</button>
         <h4>Séries</h4>
         <div class="filter-group" id="filter-series">
           <div class="loading-state" style="padding: 20px 0; text-align: left;">Chargement…</div>
@@ -296,6 +344,7 @@
 
       <!-- MARKET CONTENT -->
       <div class="market-content">
+        <button class="mobile-filter-toggle" id="mobile-filter-toggle">Afficher les filtres</button>
         <div class="market-toolbar">
           <div class="results-count"><strong id="result-count">—</strong> cartes</div>
           <select class="sort-select" id="sort-select">
@@ -312,6 +361,7 @@
             Chargement des cartes en vente…
           </div>
         </div>
+        <div id="load-more-container"></div>
       </div>
 
     </div>
@@ -432,11 +482,13 @@
     return list;
   }
 
+  let displayCount = 24; // initial cards shown
+
   function render() {
     const filtered = applyFilters(allCards);
     const sorted = applySort(filtered);
-    const display = sorted.slice(0, 60);
-    document.getElementById('result-count').textContent = display.length;
+    const display = sorted.slice(0, displayCount);
+    document.getElementById('result-count').textContent = `${display.length} / ${sorted.length}`;
 
     const grid = document.getElementById('market-grid');
     if (display.length === 0) {
@@ -473,6 +525,26 @@
           <button class="btn btn-primary btn-small market-buy-btn" data-buy-id="${c.id}" style="width: calc(100% - 16px); margin: 0 8px 10px; font-size: 11px;">Acheter ${window.TCGdex.formatPrice(price)}</button>
         </div>`;
     }).join('');
+
+    // "Load more" button
+    const sortedFiltered = applySort(applyFilters(allCards));
+    const moreContainer = document.getElementById('load-more-container');
+    if (moreContainer) {
+      if (sortedFiltered.length > displayCount) {
+        moreContainer.innerHTML = `
+          <button class="btn btn-ghost" id="load-more" style="margin: 30px auto; display: block; min-width: 200px;">
+            Voir ${Math.min(24, sortedFiltered.length - displayCount)} cartes de plus
+            <span style="opacity: 0.6; margin-left: 8px;">(${displayCount}/${sortedFiltered.length})</span>
+          </button>
+        `;
+        document.getElementById('load-more').addEventListener('click', () => {
+          displayCount += 24;
+          render();
+        });
+      } else {
+        moreContainer.innerHTML = '';
+      }
+    }
   }
 
   // ============================================
@@ -484,6 +556,7 @@
     if (inp.matches('[data-filter="series"]')) {
       if (inp.checked) filters.series.add(inp.value);
       else filters.series.delete(inp.value);
+      displayCount = 24;
       render();
     }
   });
@@ -527,10 +600,19 @@
     render();
   });
 
+  // Mobile filter toggle
+  document.getElementById('mobile-filter-toggle')?.addEventListener('click', () => {
+    document.querySelector('.sidebar')?.classList.add('open');
+  });
+  document.querySelector('.sidebar-close-mobile')?.addEventListener('click', () => {
+    document.querySelector('.sidebar')?.classList.remove('open');
+  });
+
   // "Apply" button (also re-renders)
   document.querySelector('.sidebar .btn-primary')?.addEventListener('click', () => {
     render();
     window.UI.toast('Filtres appliqués', 'info');
+    document.querySelector('.sidebar')?.classList.remove('open');
   });
 
   function resetFilters() {
