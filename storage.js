@@ -216,15 +216,8 @@ function seedDemoData() {
     { type: 'system', message: 'Compte démo créé avec 12 cartes', createdAt: Date.now() - 3600000 },
   ];
 
-  // Portfolio mock — courbe ascendante sur 12 mois
-  const today = new Date();
-  for (let i = 11; i >= 0; i--) {
-    const d = new Date(today);
-    d.setMonth(d.getMonth() - i);
-    const key = d.toISOString().slice(0, 10);
-    const base = 800 + (11 - i) * 120 + Math.random() * 100;
-    data.portfolio[key] = Math.round(base);
-  }
+  // Pas de portfolio mock : l'historique se construit naturellement à chaque visite
+  // via recordPortfolioValue() avec la VRAIE valeur du portefeuille
 
   saveUserData(data);
 }

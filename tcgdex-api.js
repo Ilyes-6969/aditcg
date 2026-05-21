@@ -133,8 +133,10 @@ function getRealPrice(card) {
   // 1) CARDMARKET (EUR)
   if (p?.cardmarket) {
     const cm = p.cardmarket;
-    const main = cm.avg ?? cm.avg30 ?? cm.trend ?? cm.low ?? null;
-    const holo = cm['avg-holo'] ?? cm['avg30-holo'] ?? cm['trend-holo'] ?? null;
+    // Use avg30 (median-like, 30-day average) for stability, NOT 'low' (which is the seller's lowest)
+    // This protects buyers from getting misleading "too good to be true" prices
+    const main = cm.avg30 ?? cm.avg ?? cm.trend ?? cm.avg7 ?? null;
+    const holo = cm['avg30-holo'] ?? cm['avg-holo'] ?? cm['trend-holo'] ?? null;
     if (main !== null && main !== undefined) {
       // Calcul tendance 30j (en %) si possible
       let trend30d = null;

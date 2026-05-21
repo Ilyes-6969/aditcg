@@ -40,7 +40,7 @@
 
   --font-display: 'Playfair Display', 'Times New Roman', Georgia, serif;
   --font-body: 'Inter', -apple-system, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-mono: 'Inter', -apple-system, system-ui, sans-serif;
   --font-italic: 'Fraunces', Georgia, serif;
 
   --radius-sm: 8px;

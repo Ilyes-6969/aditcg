@@ -193,6 +193,7 @@
       font-weight: 800;
       font-size: 13px;
       color: #1a1a2e;
+      overflow: hidden;
     }
     .nav-user-name {
       font-weight: 700;
@@ -587,6 +588,191 @@
   }
 
   // ============================================
+  // SETTINGS MODAL (avatar customization)
+  // ============================================
+
+  // Pokémon avatars: small list of iconic Pokemon with their TCGdex artwork
+  const POKEMON_AVATARS = [
+    { id: 'pikachu', name: 'Pikachu', card: 'base1-58' },
+    { id: 'charizard', name: 'Dracaufeu', card: 'base1-4' },
+    { id: 'mewtwo', name: 'Mewtwo', card: 'base1-10' },
+    { id: 'blastoise', name: 'Tortank', card: 'base1-2' },
+    { id: 'venusaur', name: 'Florizarre', card: 'base1-15' },
+    { id: 'eevee', name: 'Évoli', card: 'jungle1-51' },
+    { id: 'snorlax', name: 'Ronflex', card: 'base2-11' },
+    { id: 'gengar', name: 'Ectoplasma', card: 'base1-5' },
+    { id: 'gyarados', name: 'Léviator', card: 'base1-6' },
+    { id: 'dragonite', name: 'Dracolosse', card: 'fossil1-4' },
+    { id: 'lugia', name: 'Lugia', card: 'neo1-9' },
+    { id: 'mew', name: 'Mew', card: 'wp1-1' },
+    { id: 'rayquaza', name: 'Rayquaza', card: 'ex3-22' },
+    { id: 'lucario', name: 'Lucario', card: 'dp1-6' },
+    { id: 'umbreon', name: 'Noctali', card: 'neo2-13' },
+    { id: 'sylveon', name: 'Nymphali', card: 'xy1-89' },
+    { id: 'greninja', name: 'Amphinobi', card: 'xy1-41' },
+    { id: 'arceus', name: 'Arceus', card: 'pl4-aj' },
+  ];
+
+  // Cache rendered avatar URLs
+  const _avatarUrlCache = {};
+  async function getPokemonAvatarUrl(pokemonAvatarId) {
+    if (_avatarUrlCache[pokemonAvatarId]) return _avatarUrlCache[pokemonAvatarId];
+    const av = POKEMON_AVATARS.find(p => p.id === pokemonAvatarId);
+    if (!av) return null;
+    try {
+      const card = await window.TCGdex.getCardDetail(av.card);
+      if (card?.image) {
+        const url = window.TCGdex.getCardImage(card, 'low', 'webp');
+        _avatarUrlCache[pokemonAvatarId] = url;
+        return url;
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  async function openSettings() {
+    const user = window.Auth.getCurrentUser();
+    if (!user) {
+      openLogin();
+      return;
+    }
+
+    openModal(`
+      <div class="modal" style="max-width: 560px;">
+        <div class="modal-close">×</div>
+        <div class="modal-header">
+          <div class="pokeball-mini"></div>
+          <h2>Paramètres du <span class="accent">profil</span></h2>
+          <p>Personnalisez votre photo de profil et vos informations.</p>
+        </div>
+        <div class="modal-body">
+
+          <div style="margin-bottom: 24px;">
+            <div style="font-size: 11px; font-weight: 700; color: var(--gray-text); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 14px;">Avatar</div>
+
+            <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 18px; padding: 14px; background: var(--gray-bg); border-radius: 12px;">
+              <div id="avatar-preview" style="width: 64px; height: 64px; border-radius: 50%; background: var(--yellow); border: 3px solid #1a1a2e; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 800; font-size: 28px; color: #1a1a2e; flex-shrink: 0; overflow: hidden;"></div>
+              <div style="flex: 1;">
+                <div style="font-weight: 700; font-size: 15px;" id="avatar-label">Avatar par défaut</div>
+                <div style="font-size: 12px; color: var(--gray-text);">Cliquez sur un Pokémon pour le choisir</div>
+              </div>
+            </div>
+
+            <div style="margin-bottom: 12px; font-size: 13px; font-weight: 600;">Pokémon emblématiques</div>
+            <div id="avatar-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; max-height: 240px; overflow-y: auto; padding: 4px;"></div>
+
+            <div style="margin-top: 16px; font-size: 13px;">
+              <button class="btn btn-ghost btn-small" id="reset-avatar" style="width: 100%;">↺ Avatar par défaut (initiale)</button>
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary btn-large" id="save-settings">Enregistrer</button>
+        </div>
+      </div>
+    `);
+
+    // Render current avatar
+    async function renderPreview() {
+      const u = window.Auth.getCurrentUser();
+      const preview = document.getElementById('avatar-preview');
+      const label = document.getElementById('avatar-label');
+      if (u.avatarType === 'pokemon' && u.avatarValue) {
+        const url = await getPokemonAvatarUrl(u.avatarValue);
+        if (url) {
+          preview.innerHTML = `<img src="${url}" alt="" style="width:100%; height:100%; object-fit:cover;">`;
+          const av = POKEMON_AVATARS.find(p => p.id === u.avatarValue);
+          if (label) label.textContent = av?.name || 'Pokémon';
+          return;
+        }
+      }
+      preview.textContent = u.avatar || (u.name || '?').charAt(0).toUpperCase();
+      if (label) label.textContent = 'Avatar par défaut (initiale)';
+    }
+    renderPreview();
+
+    // Render Pokemon grid
+    const grid = document.getElementById('avatar-grid');
+    const current = window.Auth.getCurrentUser();
+    grid.innerHTML = POKEMON_AVATARS.map(p => `
+      <button class="avatar-option" data-avatar="${p.id}" title="${p.name}" style="
+        width: 100%; aspect-ratio: 1; border-radius: 50%; cursor: pointer;
+        background: var(--gray-bg); border: 3px solid ${current.avatarType === 'pokemon' && current.avatarValue === p.id ? 'var(--red)' : 'transparent'};
+        overflow: hidden; transition: all 0.2s; padding: 0;
+        display: flex; align-items: center; justify-content: center;
+      ">
+        <div class="av-placeholder" style="font-size: 9px; font-weight: 700; color: var(--gray-text); text-align: center; padding: 4px;">${p.name}</div>
+      </button>
+    `).join('');
+
+    // Lazy-load avatar images
+    POKEMON_AVATARS.forEach(async (p) => {
+      const url = await getPokemonAvatarUrl(p.id);
+      if (!url) return;
+      const btn = grid.querySelector(`[data-avatar="${p.id}"]`);
+      if (btn) {
+        btn.innerHTML = `<img src="${url}" alt="${p.name}" style="width:100%; height:100%; object-fit:cover;" onerror="this.outerHTML='<div style=&quot;font-size:9px; font-weight:700; color:var(--gray-text); padding:4px; text-align:center;&quot;>${p.name}</div>'">`;
+      }
+    });
+
+    let selectedAvatar = current.avatarType === 'pokemon' ? current.avatarValue : null;
+    grid.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.avatar-option');
+      if (!btn) return;
+      const id = btn.dataset.avatar;
+      selectedAvatar = id;
+      // Update borders
+      grid.querySelectorAll('.avatar-option').forEach(b => {
+        b.style.border = b.dataset.avatar === id ? '3px solid var(--red)' : '3px solid transparent';
+      });
+      // Update preview
+      const url = await getPokemonAvatarUrl(id);
+      const preview = document.getElementById('avatar-preview');
+      const label = document.getElementById('avatar-label');
+      if (url) {
+        preview.innerHTML = `<img src="${url}" alt="" style="width:100%; height:100%; object-fit:cover;">`;
+        const av = POKEMON_AVATARS.find(p => p.id === id);
+        if (label) label.textContent = av?.name || 'Pokémon';
+      }
+    });
+
+    document.getElementById('reset-avatar')?.addEventListener('click', () => {
+      selectedAvatar = null;
+      grid.querySelectorAll('.avatar-option').forEach(b => { b.style.border = '3px solid transparent'; });
+      const u = window.Auth.getCurrentUser();
+      const preview = document.getElementById('avatar-preview');
+      const label = document.getElementById('avatar-label');
+      preview.textContent = (u.name || '?').charAt(0).toUpperCase();
+      if (label) label.textContent = 'Avatar par défaut (initiale)';
+    });
+
+    document.getElementById('save-settings')?.addEventListener('click', async () => {
+      if (selectedAvatar) {
+        const url = await getPokemonAvatarUrl(selectedAvatar);
+        window.Auth.updateProfile({
+          avatarType: 'pokemon',
+          avatarValue: selectedAvatar,
+          avatarUrl: url,
+        });
+      } else {
+        window.Auth.updateProfile({
+          avatarType: 'default',
+          avatarValue: null,
+          avatarUrl: null,
+        });
+      }
+      toast('Paramètres enregistrés !', 'success');
+      closeModal();
+      setTimeout(() => location.reload(), 600);
+    });
+  }
+
+  // ============================================
+  // SETTINGS MODAL END
+  // ============================================
+
+  // ============================================
   // MOBILE MENU (burger + drawer)
   // ============================================
   function installMobileMenu() {
@@ -753,27 +939,66 @@
       }
       box.style.display = 'block';
       box.innerHTML = '<div style="padding:16px; text-align:center; font-size:13px; color:var(--gray-text);">Recherche…</div>';
+
+      // Search users FIRST (instant from localStorage)
+      let userMatches = [];
+      try {
+        const users = JSON.parse(localStorage.getItem('aditcg_users_v1') || '[]');
+        const q = query.toLowerCase();
+        userMatches = users.filter(u =>
+          (u.username || '').toLowerCase().includes(q) ||
+          (u.name || '').toLowerCase().includes(q)
+        ).slice(0, 3);
+      } catch (e) {}
+
+      // Search cards via API
+      let cardMatches = [];
       try {
         const cards = await window.TCGdex.searchCards(query);
-        const top = cards.slice(0, 6);
-        if (top.length === 0) {
-          box.innerHTML = '<div style="padding:16px; text-align:center; font-size:13px; color:var(--gray-text);">Aucun résultat</div>';
-          return;
-        }
-        box.innerHTML = top.map(c => `
+        cardMatches = cards.slice(0, 5);
+      } catch (e) {}
+
+      if (userMatches.length === 0 && cardMatches.length === 0) {
+        box.innerHTML = '<div style="padding:16px; text-align:center; font-size:13px; color:var(--gray-text);">Aucun résultat</div>';
+        return;
+      }
+
+      let html = '';
+
+      if (userMatches.length > 0) {
+        html += '<div style="padding:8px 14px 4px; font-size:10px; font-weight:700; color:var(--gray-text); text-transform:uppercase; letter-spacing:0.1em; background:var(--gray-bg);">Utilisateurs</div>';
+        html += userMatches.map(u => {
+          const avatar = u.avatarType === 'pokemon' && u.avatarValue
+            ? `<img src="${u.avatarValue}" alt="" style="width:100%; height:100%; object-fit:cover;">`
+            : (u.avatar || '?');
+          return `
+            <a href="profil.html?user=${u.username}" style="display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom: 1px solid var(--gray-line); color:inherit; font-size:13px;">
+              <div style="width:36px; height:36px; background:var(--yellow); border-radius:50%; border:2px solid #1a1a2e; display:flex; align-items:center; justify-content:center; font-weight:800; color:#1a1a2e; overflow:hidden;">${avatar}</div>
+              <div style="flex:1; min-width:0;">
+                <div style="font-weight:700;">${u.name}</div>
+                <div style="font-size:11px; color:var(--gray-text);">@${u.username}</div>
+              </div>
+            </a>
+          `;
+        }).join('');
+      }
+
+      if (cardMatches.length > 0) {
+        html += '<div style="padding:8px 14px 4px; font-size:10px; font-weight:700; color:var(--gray-text); text-transform:uppercase; letter-spacing:0.1em; background:var(--gray-bg);">Cartes</div>';
+        html += cardMatches.map(c => `
           <a href="carte.html?id=${c.id}" style="display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom: 1px solid var(--gray-line); color:inherit; font-size:13px;">
             <div style="width:32px; height:44px; background:var(--gray-bg); border-radius:4px; flex-shrink:0; overflow:hidden;">
               <img src="${window.TCGdex.getCardImage(c, 'low', 'webp')}" alt="" style="width:100%; height:100%; object-fit:contain;">
             </div>
             <div style="flex:1; min-width:0;">
               <div style="font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.name}</div>
-              <div style="font-family:var(--font-mono); font-size:10px; color:var(--gray-text); text-transform:uppercase;">${c.id}</div>
+              <div style="font-size:10px; color:var(--gray-text); text-transform:uppercase; letter-spacing:0.08em; font-weight:600;">${c.id}</div>
             </div>
           </a>
         `).join('');
-      } catch (e) {
-        box.innerHTML = '<div style="padding:16px; text-align:center; font-size:13px; color:var(--red);">Erreur de recherche</div>';
       }
+
+      box.innerHTML = html;
     }
 
     searchInput.addEventListener('input', (e) => {
@@ -807,8 +1032,11 @@
       // Logged in : show user dropdown
       const wrap = document.createElement('div');
       wrap.className = 'nav-user';
+      const avatarHtml = user.avatarType === 'pokemon' && user.avatarUrl
+        ? `<img src="${user.avatarUrl}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`
+        : (user.avatar || (user.name || '?').charAt(0).toUpperCase());
       wrap.innerHTML = `
-        <div class="nav-user-avatar">${user.avatar}</div>
+        <div class="nav-user-avatar">${avatarHtml}</div>
         <div class="nav-user-name">${user.name.split(' ')[0]}</div>
         <span class="nav-user-chevron">▼</span>
         <div class="user-dropdown">
@@ -817,10 +1045,18 @@
           <a href="trade.html">⇌ Mes échanges</a>
           <a href="marche.html">🛒 Marché</a>
           <div class="divider"></div>
+          <button id="open-settings-btn">⚙ Paramètres</button>
           <button id="logout-btn" class="danger">⎋ Déconnexion</button>
         </div>
       `;
       navCta.appendChild(wrap);
+
+      // Settings button
+      wrap.querySelector('#open-settings-btn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dropdown.classList.remove('open');
+        openSettings();
+      });
 
       const dropdown = wrap.querySelector('.user-dropdown');
       wrap.addEventListener('click', (e) => {
@@ -884,8 +1120,11 @@
   window.UI = {
     openModal, closeModal,
     openLogin, openSignup,
+    openSettings,
     confirm, toast,
     installNavbar,
+    POKEMON_AVATARS,
+    getPokemonAvatarUrl,
   };
 
   // Auto-install when DOM ready

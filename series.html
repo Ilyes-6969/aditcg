@@ -16,7 +16,7 @@
 <title>Séries — ADITCG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,800;0,900;1,400&family=Inter:wght@400;500;600;700;800;900&family=Fraunces:ital,opsz,wght@1,9..144,300;1,9..144,400&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,800;0,900;1,400&family=Inter:wght@400;500;600;700;800;900&family=Fraunces:ital,opsz,wght@1,9..144,300;1,9..144,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <style>
   .page-head {
@@ -400,14 +400,12 @@
         <div class="stat-value" id="stat-cards">—</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Volume 30j</div>
-        <div class="stat-value">€2.4M</div>
-        <div class="stat-trend up">↑ +12.4%</div>
+        <div class="stat-label">Plus ancienne série</div>
+        <div class="stat-value" id="stat-oldest">—</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Échanges actifs</div>
-        <div class="stat-value">847</div>
-        <div class="stat-trend up">↑ +5.2%</div>
+        <div class="stat-label">Plus récente</div>
+        <div class="stat-value" id="stat-newest">—</div>
       </div>
     </div>
 
@@ -421,8 +419,8 @@
       </div>
       <div style="display: flex; gap: 12px; align-items: center;">
         <select class="sort-select" id="sort-select">
+          <option value="date-asc" selected>Plus anciennes</option>
           <option value="date-desc">Plus récentes</option>
-          <option value="date-asc">Plus anciennes</option>
           <option value="cards-desc">Plus de cartes</option>
           <option value="cards-asc">Moins de cartes</option>
           <option value="name">Nom A-Z</option>
@@ -458,7 +456,7 @@
       <div class="footer-col"><h5>Support</h5><ul><li><a href="#">FAQ</a></li><li><a href="#">Contact</a></li></ul></div>
     </div>
     <div class="footer-bottom">
-      <div>© 2026 ADITCG · Pokémon™ Nintendo / Game Freak</div>
+      <div>© 2026 ADITCG · Plateforme indépendante de revente entre particuliers · Non affiliée à Nintendo, The Pokémon Company ou Game Freak. Pokémon™ et tous les noms de personnages associés sont des marques déposées de Nintendo / Game Freak / The Pokémon Company.</div>
       <div>Données : TCGdex</div>
     </div>
   </div>
@@ -474,7 +472,7 @@
   const container = document.getElementById('series-container');
   let allSets = [];
   let activeFilter = 'all';
-  let activeSort = 'date-desc';
+  let activeSort = 'date-asc';
 
   function renderSetCard(set) {
     const logo = window.TCGdex.getSetLogo(set, 'webp');
@@ -604,6 +602,19 @@
     document.getElementById('stat-sets').textContent = allSets.length;
     const totalCards = allSets.reduce((s, x) => s + (x.cardCount?.total || 0), 0);
     document.getElementById('stat-cards').textContent = totalCards.toLocaleString('fr-FR');
+
+    // Real oldest / newest sets
+    const datedSets = allSets.filter(s => s.releaseDate);
+    if (datedSets.length > 0) {
+      const sorted = [...datedSets].sort((a, b) => (a.releaseDate || '').localeCompare(b.releaseDate || ''));
+      const oldest = sorted[0];
+      const newest = sorted[sorted.length - 1];
+      const oldYear = (oldest.releaseDate || '').slice(0, 4);
+      const newYear = (newest.releaseDate || '').slice(0, 4);
+      document.getElementById('stat-oldest').textContent = oldYear;
+      document.getElementById('stat-newest').textContent = newYear;
+    }
+
     render();
   } catch (e) {
     console.error(e);

@@ -16,7 +16,7 @@
 <title>Carte — ADITCG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,800;0,900;1,400&family=Inter:wght@400;500;600;700;800;900&family=Fraunces:ital,opsz,wght@1,9..144,300;1,9..144,400&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,800;0,900;1,400&family=Inter:wght@400;500;600;700;800;900&family=Fraunces:ital,opsz,wght@1,9..144,300;1,9..144,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <style>
   .page-head {
@@ -423,7 +423,7 @@
       <div class="footer-col"><h5>Compte</h5><ul><li><a href="profil.html">Collection</a></li></ul></div>
       <div class="footer-col"><h5>Support</h5><ul><li><a href="#">FAQ</a></li></ul></div>
     </div>
-    <div class="footer-bottom"><div>© 2026 ADITCG</div><div>Données : TCGdex</div></div>
+    <div class="footer-bottom"><div>© 2026 ADITCG · Plateforme indépendante de revente entre particuliers · Non affiliée à Nintendo, The Pokémon Company ou Game Freak. Pokémon™ et tous les noms de personnages associés sont des marques déposées de Nintendo / Game Freak / The Pokémon Company.</div><div>Données : TCGdex</div></div>
   </div>
 </footer>
 
@@ -574,14 +574,13 @@
         const yMin = minV - pad;
         const yMax = maxV + pad;
 
-        const xs = points.map((_, i) => (i / (points.length - 1)) * 560 + 20);
-        const ys = points.map(p => 160 - ((p.value - yMin) / (yMax - yMin)) * 140 + 10);
+        const W = 600, H = 180;
+        const xs = points.map((_, i) => (i / (points.length - 1)) * (W - 40) + 20);
+        const ys = points.map(p => H - 20 - ((p.value - yMin) / (yMax - yMin)) * (H - 40));
 
         const linePath = points.map((_, i) => `${i === 0 ? 'M' : 'L'}${xs[i]},${ys[i]}`).join(' ');
-        const fillPath = `M${xs[0]},170 L${xs.map((x, i) => `${x},${ys[i]}`).join(' L')} L${xs[xs.length-1]},170 Z`;
-
-        const dots = points.map((p, i) => `<circle cx="${xs[i]}" cy="${ys[i]}" r="4" fill="var(--red)" stroke="var(--white)" stroke-width="2"/>`).join('');
-        const labels = points.map((p, i) => `<text x="${xs[i]}" y="${Math.max(ys[i] - 12, 14)}" text-anchor="middle" font-family="JetBrains Mono" font-size="10" font-weight="700" fill="var(--ink)">${window.TCGdex.formatPrice(p.value)}</text>`).join('');
+        const fillPath = `M${xs[0]},${H - 10} L${xs.map((x, i) => `${x},${ys[i]}`).join(' L')} L${xs[xs.length-1]},${H - 10} Z`;
+        const dots = points.map((p, i) => `<circle cx="${xs[i]}" cy="${ys[i]}" r="4" fill="#dc0a2d" stroke="#ffffff" stroke-width="2" class="chart-dot" data-idx="${i}"/>`).join('');
 
         const svg = document.querySelector('.price-chart');
         if (svg) {
@@ -595,8 +594,59 @@
             <path d="${fillPath}" fill="url(#chartFill)"/>
             <path d="${linePath}" fill="none" stroke="#dc0a2d" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
             ${dots}
-            ${labels}
+            <line class="chart-cursor" x1="0" y1="0" x2="0" y2="${H}" stroke="rgba(220,10,45,0.3)" stroke-width="1" stroke-dasharray="3,3" style="opacity:0; pointer-events:none;"/>
+            <circle class="chart-hover-dot" r="6" fill="#dc0a2d" stroke="#ffffff" stroke-width="3" style="opacity:0; pointer-events:none;"/>
           `;
+
+          // Add hover interaction
+          const tooltip = document.createElement('div');
+          tooltip.className = 'chart-tooltip';
+          tooltip.style.cssText = 'position:absolute; background:#1a1a2e; color:#fff; padding:8px 12px; border-radius:8px; font-size:12px; pointer-events:none; opacity:0; transition:opacity 0.15s; box-shadow:0 6px 16px rgba(0,0,0,0.3); z-index:5; white-space:nowrap;';
+          svg.parentElement.style.position = 'relative';
+          svg.parentElement.appendChild(tooltip);
+
+          const cursor = svg.querySelector('.chart-cursor');
+          const hoverDot = svg.querySelector('.chart-hover-dot');
+
+          svg.style.cursor = 'crosshair';
+          svg.addEventListener('mousemove', (e) => {
+            const rect = svg.getBoundingClientRect();
+            const xRatio = (e.clientX - rect.left) / rect.width;
+            const svgX = xRatio * W;
+
+            // Find closest point
+            let closestIdx = 0;
+            let closestDist = Math.abs(xs[0] - svgX);
+            for (let i = 1; i < xs.length; i++) {
+              const d = Math.abs(xs[i] - svgX);
+              if (d < closestDist) { closestDist = d; closestIdx = i; }
+            }
+
+            const px = xs[closestIdx];
+            const py = ys[closestIdx];
+            const point = points[closestIdx];
+
+            cursor.setAttribute('x1', px);
+            cursor.setAttribute('x2', px);
+            cursor.style.opacity = '1';
+            hoverDot.setAttribute('cx', px);
+            hoverDot.setAttribute('cy', py);
+            hoverDot.style.opacity = '1';
+
+            // Tooltip position in DOM coordinates
+            const tooltipX = (px / W) * rect.width;
+            const tooltipY = (py / H) * rect.height;
+            tooltip.innerHTML = '<strong style="font-family:&apos;Playfair Display&apos;,serif; font-size:14px;">' + window.TCGdex.formatPrice(point.value) + '</strong><br><span style="opacity:0.7; font-size:10px; text-transform:uppercase; letter-spacing:0.1em;">' + (point.label === 'Now' ? "Aujourd'hui" : 'Il y a ' + point.label) + '</span>';
+            tooltip.style.opacity = '1';
+            tooltip.style.left = (tooltipX + 12) + 'px';
+            tooltip.style.top = (tooltipY - 20) + 'px';
+          });
+
+          svg.addEventListener('mouseleave', () => {
+            cursor.style.opacity = '0';
+            hoverDot.style.opacity = '0';
+            tooltip.style.opacity = '0';
+          });
         }
       }
     }

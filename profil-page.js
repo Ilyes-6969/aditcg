@@ -10,7 +10,28 @@
     const metaEl = document.querySelector('.profil-meta');
     const dateStr = new Date(user.createdAt).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long' });
 
-    if (avatarEl) avatarEl.textContent = user.avatar;
+    // Avatar: Pokemon image if set, else initial
+    if (avatarEl) {
+      if (user.avatarType === 'pokemon' && user.avatarUrl) {
+        avatarEl.innerHTML = `<img src="${user.avatarUrl}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+        avatarEl.style.padding = '0';
+        avatarEl.style.overflow = 'hidden';
+      } else if (user.avatarType === 'pokemon' && user.avatarValue && window.UI?.getPokemonAvatarUrl) {
+        // Resolve URL if missing
+        window.UI.getPokemonAvatarUrl(user.avatarValue).then(url => {
+          if (url) {
+            avatarEl.innerHTML = `<img src="${url}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+            avatarEl.style.padding = '0';
+            avatarEl.style.overflow = 'hidden';
+            window.Auth.updateProfile({ avatarUrl: url });
+          } else {
+            avatarEl.textContent = user.avatar;
+          }
+        });
+      } else {
+        avatarEl.textContent = user.avatar || (user.name || '?').charAt(0).toUpperCase();
+      }
+    }
     if (headerH1) {
       const parts = user.name.split(' ');
       const firstName = parts[0];
@@ -183,6 +204,22 @@
         '<path d="M0,180 L' + points.join(' L') + ' L600,180 Z" fill="url(#chartGrad)"/>' +
         '<path d="M' + points.join(' L') + '" fill="none" stroke="#dc0a2d" stroke-width="3"/>';
     }
+  } else {
+    // Not enough data yet — show a friendly placeholder
+    const portfolioChart = document.querySelector('#tab-portfolio .portfolio-chart');
+    if (portfolioChart) {
+      const svg = portfolioChart.querySelector('.chart-svg');
+      if (svg) {
+        svg.innerHTML = `
+          <text x="300" y="80" text-anchor="middle" font-family="Inter" font-size="14" font-weight="600" fill="rgba(255,255,255,0.4)">
+            Pas encore assez de données
+          </text>
+          <text x="300" y="105" text-anchor="middle" font-family="Inter" font-size="12" fill="rgba(255,255,255,0.3)">
+            Revenez chaque jour pour suivre votre portefeuille
+          </text>
+        `;
+      }
+    }
   }
 
   // 9. TOP HOLDINGS
@@ -245,7 +282,7 @@
   });
 
   document.getElementById('btn-settings')?.addEventListener('click', () => {
-    window.UI.toast('Page paramètres bientôt disponible', 'info');
+    window.UI.openSettings();
   });
 
 })();
