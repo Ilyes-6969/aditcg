@@ -1,5 +1,5 @@
 // ===============================================
-// SUPABASE-CLIENT.JS
+// SUPABASE_CLIENT.JS
 // Wrapper centralisé pour parler à Supabase
 // ===============================================
 const SUPABASE_URL = "https://gokzpxfcjregjuilfezi.supabase.co";

@@ -1,8 +1,15 @@
 // PROFIL-PAGE.JS — Logique de la page profil
 (async () => {
 
+  // Attendre que l'auth soit prête
+  const user = await new Promise(resolve => {
+    const u = window.Auth?.getCurrentUser();
+    if (u) return resolve(u);
+    window.Auth?.onAuthChange((event, u2) => { if (u2) resolve(u2); });
+    setTimeout(() => resolve(null), 3000);
+  });
+
   // 1. UPDATE HEADER from current user
-  const user = window.Auth.getCurrentUser();
   if (user) {
     const avatarEl = document.querySelector('.profil-avatar');
     const headerH1 = document.querySelector('.profil-info h1');
