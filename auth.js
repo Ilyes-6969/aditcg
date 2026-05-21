@@ -1,11 +1,17 @@
 // ============================================
 // AUTH.JS — Authentification réelle via Supabase
 // ============================================
+(() => {
+;   
 
-let _currentUser = null;       // { id, email, ... }
-let _currentProfile = null;    // { id, username, name, avatar_*, ... }
-let _authListeners = [];
+var _currentUser = window._currentUser || null;       // { id, email, ... }
+window._currentUser = _currentUser;
 
+var _currentProfile = window._currentProfile || null;       // { id, username, name, avatar_*, ... }
+window._currentProfile = _currentProfile;
+
+var _authListeners = window._authListeners || [];
+window._authListeners = _authListeners;
 // ============================================
 // INIT — récupère la session existante au chargement
 // ============================================
@@ -243,3 +249,4 @@ window.Auth = {
   onAuthChange,
   ensureDemoUser,
 };
+})();
