@@ -165,6 +165,23 @@
     font-size: 80px;
     filter: drop-shadow(0 6px 12px rgba(0,0,0,0.3));
   }
+  .banner-fallback {
+    width: 100%; height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+  }
+  .banner-fallback .bf-name {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(20px, 3vw, 32px);
+    color: rgba(255, 255, 255, 0.95);
+    text-align: center;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    text-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
 
   /* LIST VIEW */
   .collections-list {
@@ -463,25 +480,25 @@
     const logo = window.TCGdex.getSetLogo(set, 'webp');
     const total = set.cardCount?.total || 0;
     const year = (set.releaseDate || '').slice(0, 4) || '—';
-    const floor = window.TCGdex.estimatePrice({ id: set.id, rarity: 'common', name: '' }) * 30;
-    const vol = (total * 12 + 200);
-    const trendVal = ((set.id || '').split('').reduce((a,c) => a + c.charCodeAt(0), 0) % 40) - 10;
+    const floor = Math.round(window.TCGdex.estimateSetFloor(set));
+    const serieName = set.serie?.name || '';
+    const safeName = set.name.replace(/'/g, '&apos;');
     return `
       <a href="set.html?id=${set.id}" class="coll-card">
         <div class="coll-card-banner">
           <div class="badge-year">${year}</div>
           <div class="badge-count">${total} cartes</div>
           ${logo
-            ? `<img src="${logo}" alt="${set.name}" onerror="this.outerHTML='<div class=&quot;placeholder-emoji&quot;>🃏</div>'">`
-            : `<div class="placeholder-emoji">🃏</div>`}
+            ? `<img src="${logo}" alt="${set.name}" onerror="this.outerHTML='<div class=&quot;banner-fallback&quot;><div class=&quot;bf-name&quot;>${safeName}</div></div>'">`
+            : `<div class="banner-fallback"><div class="bf-name">${set.name}</div></div>`}
         </div>
         <div class="coll-card-body">
           <div class="coll-card-title">${set.name}</div>
-          <div class="coll-card-subtitle">${set.serie?.name || 'Série'} · ${set.id}</div>
+          <div class="coll-card-subtitle">${serieName ? serieName + ' · ' : ''}${set.id}</div>
           <div class="coll-card-stats">
-            <div class="coll-stat-item"><div class="v">€${floor}</div><div class="l">Floor</div></div>
-            <div class="coll-stat-item"><div class="v">€${vol.toLocaleString('fr-FR')}</div><div class="l">Vol. 7j</div></div>
-            <div class="coll-stat-item"><div class="v ${trendVal >= 0 ? 'up' : 'down'}">${trendVal >= 0 ? '↑' : '↓'}${Math.abs(trendVal)}%</div><div class="l">Variation</div></div>
+            <div class="coll-stat-item"><div class="v">${window.TCGdex.formatPrice(floor)}</div><div class="l">Floor estimé</div></div>
+            <div class="coll-stat-item"><div class="v">${total}</div><div class="l">Cartes</div></div>
+            <div class="coll-stat-item"><div class="v">${year}</div><div class="l">Année</div></div>
           </div>
         </div>
       </a>`;

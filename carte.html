@@ -438,12 +438,15 @@
         document.getElementById('related-grid').innerHTML = related.map(c => {
           const ri = window.TCGdex.getCardImage(c, 'low', 'webp');
           const rp = window.TCGdex.estimatePrice(c);
+          const imgHtml = ri
+            ? `<img src="${ri}" alt="${c.name}" loading="lazy" onerror="this.parentNode.innerHTML='<div class=&quot;card-fallback&quot;><div class=&quot;cf-emoji&quot;>🃏</div><div class=&quot;cf-name&quot;>${c.name.replace(/'/g, '&apos;')}</div></div>'">`
+            : `<div class="card-fallback"><div class="cf-emoji">🃏</div><div class="cf-name">${c.name}</div></div>`;
           return `
             <a href="carte.html?id=${c.id}" class="pkmn-card">
-              <div class="pkmn-card-img"><img src="${ri}" alt="${c.name}" loading="lazy"></div>
+              <div class="pkmn-card-img">${imgHtml}</div>
               <div class="pkmn-card-info">
                 <div class="pkmn-card-name">${c.name}</div>
-                <div class="pkmn-card-price">€${rp}</div>
+                <div class="pkmn-card-price">${window.TCGdex.formatPrice(rp)}</div>
               </div>
             </a>`;
         }).join('');
