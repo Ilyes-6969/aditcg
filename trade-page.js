@@ -111,7 +111,7 @@
       let cards = [];
       try {
         if (currentTab === 'collection') {
-          const ids = window.Storage.getCollection();
+          const ids = await window.Storage.getCollection();
           cards = (await Promise.all(ids.map(id =>
             window.TCGdex.getCardDetail(id).catch(() => null)
           ))).filter(Boolean);
@@ -232,7 +232,7 @@
     });
     if (!ok) return;
 
-    const trade = window.Storage.createTrade({
+    const trade = await window.Storage.createTrade({
       give: composer.give.map(i => i.id),
       receive: composer.receive.map(i => i.id),
       partner: 'Communauté',
@@ -314,13 +314,15 @@
           });
           if (ok) {
             // Demo : we virtually give our cards (receive[]) and gain (give[])
-            window.Storage.createTrade({
+            await window.Storage.createTrade({
               give: trade.give,
               receive: trade.receive,
               partner: trade.name,
             });
             // Add the received cards to collection
-            trade.give.forEach(id => window.Storage.addToCollection(id));
+            for (const id of trade.give) {
+              await window.Storage.addToCollection(id);
+            }
             window.UI.toast('Échange accepté ! Nouvelles cartes ajoutées à votre collection.', 'success', 4500);
             btn.outerHTML = '<span class="status-pill done">Accepté</span>';
           }
@@ -335,8 +337,8 @@
   // ============================================
   // HISTORY (real trades from Storage)
   // ============================================
-  function renderHistory() {
-    const trades = window.Storage.getTrades();
+  async function renderHistory() {
+    const trades = await window.Storage.getTrades();
     const table = document.querySelector('.history-table');
     if (!table) return;
 
@@ -364,13 +366,18 @@
       rejected: '<span class="status-pill cancel">Refusé</span>',
     };
 
-    table.innerHTML = head + trades.slice().reverse().map(t => {
+    table.innerHTML = head + trades.map(t => {
+      // Supabase returns give_cards/receive_cards (jsonb arrays) + created_at as timestamp
+      const giveCount = (t.give_cards || t.give || []).length;
+      const recvCount = (t.receive_cards || t.receive || []).length;
+      const partner = t.partner || (t.recipient_id ? '@' + t.recipient_id.slice(0, 8) : 'Communauté');
+      const ts = t.created_at ? new Date(t.created_at).getTime() : (t.createdAt || Date.now());
       return '<div class="history-row">' +
         '<div>' + (statusPills[t.status] || statusPills.pending) + '</div>' +
-        '<div>' + t.give.length + ' cartes \u21cc ' + t.receive.length + ' cartes</div>' +
-        '<div>' + t.partner + '</div>' +
+        '<div>' + giveCount + ' cartes \u21cc ' + recvCount + ' cartes</div>' +
+        '<div>' + partner + '</div>' +
         '<div style="color:var(--gray-text); font-weight:600;">—</div>' +
-        '<div style="color:var(--gray-text); font-size:12px;">' + timeAgo(t.createdAt) + '</div>' +
+        '<div style="color:var(--gray-text); font-size:12px;">' + timeAgo(ts) + '</div>' +
         '</div>';
     }).join('');
   }

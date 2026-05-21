@@ -344,6 +344,8 @@
     .pokemon-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
   }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
 </head>
 <body>
 
@@ -459,6 +461,7 @@
   let searchQuery = ''; // search box query
   let allCards = [];
   let ownedSet = new Set();
+  let favSet = new Set();
   let displayedSetCount = 36;
   let total = 0;
 
@@ -493,12 +496,15 @@
     });
     const realCoverage = pricedCount > 0 ? Math.round((realCount / pricedCount) * 100) : 0;
 
-    // Pseudo-random "owned" 60% of cards
-    // Use real Storage data
-    const realCollection = window.Storage.getCollection();
-    cardsList.forEach(c => {
-      if (realCollection.includes(c.id)) ownedSet.add(c.id);
-    });
+    // Use real Storage data (only if logged in)
+    if (window.Auth.isLoggedIn()) {
+      const realCollection = await window.Storage.getCollection();
+      cardsList.forEach(c => {
+        if (realCollection.includes(c.id)) ownedSet.add(c.id);
+      });
+      const favList = await window.Storage.getFavorites();
+      favSet = new Set(favList);
+    }
     const ownedCount = ownedSet.size;
 
     // HERO
@@ -603,7 +609,7 @@
       const img = window.TCGdex.getCardImage(c, 'low', 'webp');
       const price = window.TCGdex.estimatePrice(c);
       const isOwned = ownedSet.has(c.id);
-      const isFav = window.Storage.isFavorite(c.id);
+      const isFav = favSet.has(c.id);
       const imgHtml = img
         ? `<img src="${img}" alt="${c.name}" loading="lazy" onerror="this.parentNode.innerHTML='<div class=&quot;card-fallback&quot;><div class=&quot;cf-emoji&quot;>🃏</div><div class=&quot;cf-name&quot;>${c.name.replace(/'/g, '&apos;')}</div></div>'">`
         : `<div class="card-fallback"><div class="cf-emoji">🃏</div><div class="cf-name">${c.name}</div></div>`;
@@ -669,16 +675,18 @@
   }
 
   // Delegated handlers for owned/favorite toggles
-  document.getElementById('cards-grid').addEventListener('click', (e) => {
+  document.getElementById('cards-grid').addEventListener('click', async (e) => {
     const favBtn = e.target.closest('.fav-toggle');
     const ownedBtn = e.target.closest('.owned-toggle');
 
     if (favBtn) {
       e.preventDefault();
       e.stopPropagation();
+      if (!window.Auth.isLoggedIn()) { window.UI.openLogin(); return; }
       const id = favBtn.dataset.favId;
-      const now = window.Storage.toggleFavorite(id);
+      const now = await window.Storage.toggleFavorite(id);
       favBtn.classList.toggle('active', now);
+      if (now) favSet.add(id); else favSet.delete(id);
       window.UI.toast(now ? 'Ajouté aux favoris ♥' : 'Retiré des favoris', now ? 'success' : 'info');
       return;
     }
@@ -686,8 +694,9 @@
     if (ownedBtn) {
       e.preventDefault();
       e.stopPropagation();
+      if (!window.Auth.isLoggedIn()) { window.UI.openLogin(); return; }
       const id = ownedBtn.dataset.ownedId;
-      const now = window.Storage.toggleOwned(id);
+      const now = await window.Storage.toggleOwned(id);
       ownedBtn.classList.toggle('active', now);
       ownedBtn.innerHTML = now ? '✓ POSSÉDÉE' : '+ AJOUTER';
       // Update card grayscale
@@ -695,7 +704,6 @@
       if (card) card.classList.toggle('not-owned', !now);
       if (now) ownedSet.add(id); else ownedSet.delete(id);
       window.UI.toast(now ? 'Carte ajoutée à votre collection !' : 'Carte retirée de votre collection', now ? 'success' : 'info');
-      // Update completion bar
       updateCompletionBar();
       return;
     }

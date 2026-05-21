@@ -940,18 +940,16 @@
       box.style.display = 'block';
       box.innerHTML = '<div style="padding:16px; text-align:center; font-size:13px; color:var(--gray-text);">Recherche…</div>';
 
-      // Search users FIRST (instant from localStorage)
+      // Search users via Supabase (real users from database)
       let userMatches = [];
       try {
-        const users = JSON.parse(localStorage.getItem('aditcg_users_v1') || '[]');
-        const q = query.toLowerCase();
-        userMatches = users.filter(u =>
-          (u.username || '').toLowerCase().includes(q) ||
-          (u.name || '').toLowerCase().includes(q)
-        ).slice(0, 3);
-      } catch (e) {}
+        if (window.Auth?.searchUsers) {
+          userMatches = await window.Auth.searchUsers(query);
+          userMatches = userMatches.slice(0, 3);
+        }
+      } catch (e) { console.warn(e); }
 
-      // Search cards via API
+      // Search cards via TCGdex API
       let cardMatches = [];
       try {
         const cards = await window.TCGdex.searchCards(query);
@@ -968,12 +966,13 @@
       if (userMatches.length > 0) {
         html += '<div style="padding:8px 14px 4px; font-size:10px; font-weight:700; color:var(--gray-text); text-transform:uppercase; letter-spacing:0.1em; background:var(--gray-bg);">Utilisateurs</div>';
         html += userMatches.map(u => {
-          const avatar = u.avatarType === 'pokemon' && u.avatarValue
-            ? `<img src="${u.avatarValue}" alt="" style="width:100%; height:100%; object-fit:cover;">`
-            : (u.avatar || '?');
+          // Supabase returns snake_case: avatar_type, avatar_value, avatar_url
+          const avatarHtml = u.avatar_type === 'pokemon' && u.avatar_url
+            ? `<img src="${u.avatar_url}" alt="" style="width:100%; height:100%; object-fit:cover;">`
+            : (u.name || '?').charAt(0).toUpperCase();
           return `
             <a href="profil.html?user=${u.username}" style="display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom: 1px solid var(--gray-line); color:inherit; font-size:13px;">
-              <div style="width:36px; height:36px; background:var(--yellow); border-radius:50%; border:2px solid #1a1a2e; display:flex; align-items:center; justify-content:center; font-weight:800; color:#1a1a2e; overflow:hidden;">${avatar}</div>
+              <div style="width:36px; height:36px; background:var(--yellow); border-radius:50%; border:2px solid #1a1a2e; display:flex; align-items:center; justify-content:center; font-weight:800; color:#1a1a2e; overflow:hidden;">${avatarHtml}</div>
               <div style="flex:1; min-width:0;">
                 <div style="font-weight:700;">${u.name}</div>
                 <div style="font-size:11px; color:var(--gray-text);">@${u.username}</div>
@@ -1128,18 +1127,14 @@
   };
 
   // Auto-install when DOM ready
-  function init() {
-    // Ensure demo user exists
-    window.Auth.ensureDemoUser();
-    // Seed demo data only if logged in
-    if (window.Auth.isLoggedIn()) {
-      window.Storage.seedDemoData();
+  async function init() {
+    // Init Supabase Auth FIRST (loads session if exists)
+    if (window.Auth?.init) {
+      await window.Auth.init();
     }
-    // Install navbar
+    // Install UI components
     installNavbar();
-    // Install search
     installNavbarSearch();
-    // Install mobile menu (after navbar is built)
     installMobileMenu();
   }
 

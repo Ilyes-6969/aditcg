@@ -258,6 +258,8 @@
     .pokemon-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
   }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
 </head>
 <body>
 
@@ -389,6 +391,7 @@
 (async () => {
   // STATE
   let allCards = [];
+  let favSet = new Set();
   const filters = {
     series: new Set(),    // set IDs
     rarities: new Set(),  // 'common', 'uncommon', etc.
@@ -396,6 +399,14 @@
     prices: new Set(),    // 'lt10', '10-50', etc.
   };
   let sort = 'price-desc';
+
+  // Preload favorites (if logged in)
+  if (window.Auth.isLoggedIn()) {
+    try {
+      const favs = await window.Storage.getFavorites();
+      favSet = new Set(favs);
+    } catch (e) {}
+  }
 
   // ============================================
   // LOAD DATA
@@ -522,7 +533,7 @@
       const trend = window.TCGdex.estimateTrend(c);
       const badges = ['sale', 'trade', 'psa', null, null];
       const badge = badges[i % badges.length];
-      const isFav = window.Storage.isFavorite(c.id);
+      const isFav = favSet.has(c.id);
       return `
         <div class="pkmn-card" style="position: relative;">
           <button class="fav-toggle ${isFav ? 'active' : ''}" data-fav-id="${c.id}" aria-label="Favori"></button>
@@ -653,9 +664,11 @@
     if (favBtn) {
       e.preventDefault();
       e.stopPropagation();
+      if (!window.Auth.isLoggedIn()) { window.UI.openLogin(); return; }
       const id = favBtn.dataset.favId;
-      const now = window.Storage.toggleFavorite(id);
+      const now = await window.Storage.toggleFavorite(id);
       favBtn.classList.toggle('active', now);
+      if (now) favSet.add(id); else favSet.delete(id);
       window.UI.toast(now ? 'Ajouté aux favoris ♥' : 'Retiré des favoris', now ? 'success' : 'info');
       return;
     }
@@ -674,8 +687,8 @@
         confirmText: 'Confirmer',
       });
       if (ok) {
-        window.Storage.addToCollection(card.id);
-        window.Storage.addActivity('listing', `Achat marché : ${card.name} pour ${window.TCGdex.formatPrice(price)}`);
+        await window.Storage.addToCollection(card.id);
+        await window.Storage.addActivity('listing', `Achat marché : ${card.name} pour ${window.TCGdex.formatPrice(price)}`);
         window.UI.toast('Achat confirmé ! Carte ajoutée à votre collection.', 'success', 4000);
       }
     }

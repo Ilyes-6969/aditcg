@@ -71,8 +71,20 @@
   }
 
   // 3. LOAD COLLECTION
-  const collectionIds = window.Storage.getCollection();
-  const favoriteIds = window.Storage.getFavorites();
+  if (!window.Auth.isLoggedIn()) {
+    document.getElementById('collection-grid').innerHTML =
+      '<div class="empty-state" style="grid-column:1/-1;">' +
+      '<div class="emoji">\ud83d\udd12</div>' +
+      '<h3>Connectez-vous pour voir votre collection</h3>' +
+      '<p>Vous devez \u00eatre connect\u00e9 pour acc\u00e9der \u00e0 votre profil.</p>' +
+      '<button class="btn btn-primary" style="margin-top:16px;" onclick="window.UI.openLogin()">Se connecter</button>' +
+      '</div>';
+    return;
+  }
+
+  const collectionIds = await window.Storage.getCollection();
+  const favoriteIds = await window.Storage.getFavorites();
+  const favSet = new Set(favoriteIds);
 
   let allCards = [];
   try {
@@ -94,11 +106,11 @@
   allCards.forEach(c => { if (c.set?.id) uniqueSets.add(c.set.id); });
   document.getElementById('stat-sets').textContent = uniqueSets.size;
 
-  // Record portfolio value for today
-  window.Storage.recordPortfolioValue(totalValue);
+  // Record portfolio value for today (no-op in Supabase v1)
+  await window.Storage.recordPortfolioValue(totalValue);
 
   // Compute performance vs 30 days ago
-  const history = window.Storage.getPortfolioHistory();
+  const history = await window.Storage.getPortfolioHistory();
   const perfEl = document.getElementById('stat-perf');
   if (history.length >= 2) {
     const old = history[Math.max(0, history.length - 30)].value;
@@ -108,10 +120,10 @@
       perfEl.textContent = (pct >= 0 ? '\u2191 +' : '\u2193 ') + pct.toFixed(1) + '%';
       perfEl.className = 'v ' + (pct >= 0 ? 'green' : 'red');
     } else {
-      perfEl.textContent = '—';
+      perfEl.textContent = '\u2014';
     }
   } else {
-    perfEl.textContent = '—';
+    perfEl.textContent = '\u2014';
   }
 
   // 5. COLLECTION GRID
@@ -119,7 +131,7 @@
     const img = window.TCGdex.getCardImage(c, 'low', 'webp');
     const priceData = window.TCGdex.getRealPrice(c);
     const trend = window.TCGdex.estimateTrend(c);
-    const isFav = window.Storage.isFavorite(c.id);
+    const isFav = favSet.has(c.id);
     return '<div class="pkmn-card">' +
       '<button class="fav-toggle ' + (isFav ? 'active' : '') + '" data-fav-id="' + c.id + '" aria-label="Favori"></button>' +
       '<a href="carte.html?id=' + c.id + '" style="display:block;color:inherit;">' +
@@ -168,18 +180,18 @@
   }
 
   // 7. FAVORITE TOGGLE LISTENER (delegated)
-  document.addEventListener('click', (e) => {
+  document.addEventListener('click', async (e) => {
     const btn = e.target.closest('.fav-toggle');
     if (!btn) return;
     e.preventDefault();
     e.stopPropagation();
     const id = btn.dataset.favId;
-    const nowFav = window.Storage.toggleFavorite(id);
+    const nowFav = await window.Storage.toggleFavorite(id);
     document.querySelectorAll('[data-fav-id="' + id + '"]').forEach(b => b.classList.toggle('active', nowFav));
     window.UI.toast(nowFav ? 'Ajout\u00e9 aux favoris \u2665' : 'Retir\u00e9 des favoris', nowFav ? 'success' : 'info');
 
     // Update fav count
-    const newFav = window.Storage.getFavorites();
+    const newFav = await window.Storage.getFavorites();
     document.getElementById('tab-count-fav').textContent = newFav.length;
     document.getElementById('stat-fav').textContent = newFav.length;
   });
@@ -243,7 +255,7 @@
     }).join('');
 
   // 10. ACTIVITY TAB
-  const activity = window.Storage.getActivity();
+  const activity = await window.Storage.getActivity();
   const activityTab = document.getElementById('tab-activity');
   if (activity.length === 0) {
     activityTab.innerHTML =
