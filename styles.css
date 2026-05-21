@@ -38,9 +38,10 @@
   --footer-bg: #1a1a2e;
   --footer-text: #ffffff;
 
-  --font-display: 'Fraunces', Georgia, serif;
-  --font-body: 'Manrope', -apple-system, system-ui, sans-serif;
+  --font-display: 'Playfair Display', 'Times New Roman', Georgia, serif;
+  --font-body: 'Inter', -apple-system, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+  --font-italic: 'Fraunces', Georgia, serif;
 
   --radius-sm: 8px;
   --radius: 12px;
@@ -121,11 +122,13 @@ html, body {
   color: var(--ink);
   font-family: var(--font-body);
   font-size: 15px;
+  font-weight: 400;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  line-height: 1.5;
+  line-height: 1.55;
   scroll-behavior: smooth;
   transition: background 0.25s ease, color 0.25s ease;
+  letter-spacing: -0.005em;
 }
 
 a { color: inherit; text-decoration: none; }
@@ -139,31 +142,38 @@ img { display: block; max-width: 100%; }
 
 .display-1 {
   font-family: var(--font-display);
-  font-weight: 900;
+  font-weight: 800;
   font-size: clamp(40px, 6vw, 88px);
-  line-height: 0.95;
-  letter-spacing: -0.04em;
+  line-height: 1.0;
+  letter-spacing: -0.025em;
   color: var(--ink);
 }
 .display-2 {
   font-family: var(--font-display);
-  font-weight: 800;
+  font-weight: 700;
   font-size: clamp(28px, 4vw, 48px);
-  line-height: 1.05;
-  letter-spacing: -0.03em;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
   color: var(--ink);
 }
 .display-3 {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: clamp(22px, 2.5vw, 32px);
-  line-height: 1.15;
-  letter-spacing: -0.02em;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
   color: var(--ink);
 }
 
-.italic-accent { font-style: italic; font-weight: 300; color: var(--red); }
-.italic-blue { font-style: italic; font-weight: 300; color: var(--blue); }
+.italic-accent { font-family: var(--font-italic); font-style: italic; font-weight: 400; color: var(--red); }
+.italic-blue { font-family: var(--font-italic); font-style: italic; font-weight: 400; color: var(--blue); }
+
+/* Universal italic accent (used inside hero titles) */
+h1 .accent, h2 .accent, .display-1 .accent, .display-2 .accent {
+  font-family: var(--font-italic);
+  font-style: italic;
+  font-weight: 400;
+}
 
 .eyebrow {
   font-family: var(--font-mono);

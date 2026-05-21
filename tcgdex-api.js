@@ -331,7 +331,10 @@ async function getSetsBySeries() {
 // ============================================
 function getCardImage(card, quality = 'high', format = 'webp') {
   if (!card || !card.image) return null;
-  return `${card.image}/${quality}.${format}`;
+  // TCGdex sometimes returns image without protocol
+  let url = card.image;
+  if (!url.startsWith('http')) url = 'https://' + url.replace(/^\/+/, '');
+  return `${url}/${quality}.${format}`;
 }
 
 function getSetLogo(set, format = 'webp') {
