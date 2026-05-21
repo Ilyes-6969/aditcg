@@ -555,93 +555,11 @@
   </div>
 </footer>
 
+<script src="auth.js"></script>
+<script src="storage.js"></script>
 <script src="tcgdex-api.js"></script>
+<script src="ui.js"></script>
 <script src="app.js"></script>
-<script>
-(async () => {
-
-  // Fill composer slots with real card images
-  async function fillSlot(slot) {
-    const img = slot.querySelector('img[data-card]');
-    if (!img) return;
-    const id = img.dataset.card;
-    const card = await window.TCGdex.getCardDetail(id);
-    if (card?.image) {
-      img.src = window.TCGdex.getCardImage(card, 'low', 'webp');
-      slot.dataset.value = window.TCGdex.estimatePrice(card);
-    }
-  }
-
-  async function fillComposer() {
-    const giveSlots = document.querySelectorAll('#give-slots .slot.filled');
-    const recvSlots = document.querySelectorAll('#receive-slots .slot.filled');
-    await Promise.all([
-      ...Array.from(giveSlots).map(fillSlot),
-      ...Array.from(recvSlots).map(fillSlot),
-    ]);
-    const giveTotal = Array.from(giveSlots).reduce((s, el) => s + (parseInt(el.dataset.value) || 0), 0);
-    const recvTotal = Array.from(recvSlots).reduce((s, el) => s + (parseInt(el.dataset.value) || 0), 0);
-    document.getElementById('give-value').textContent = `€${giveTotal}`;
-    document.getElementById('receive-value').textContent = `€${recvTotal}`;
-    const balance = recvTotal - giveTotal;
-    const balEl = document.getElementById('balance');
-    balEl.textContent = `${balance >= 0 ? '+' : '−'}€${Math.abs(balance)}`;
-    balEl.className = `v ${balance >= 0 ? '' : 'neg'}`;
-  }
-
-  // Fake public trade feed using real cards
-  const trades = [
-    { who: 'M', name: '@marie_dresseuse', meta: '⭐ 4.8 · 32 échanges', give: ['base1-4'], receive: ['sv03.5-9', 'sv03.5-25'], time: '12 min' },
-    { who: 'T', name: '@thomas_94', meta: '⭐ 4.9 · 78 échanges', give: ['neo1-9'], receive: ['swsh7-150'], time: '1h' },
-    { who: 'L', name: '@lucas_collector', meta: '⭐ 5.0 · 142 échanges', give: ['xy12-12', 'xy12-25'], receive: ['base1-15'], time: '3h' },
-  ];
-
-  async function renderTradeFeed() {
-    const feed = document.getElementById('trade-feed');
-    try {
-      const allIds = [...new Set(trades.flatMap(t => [...t.give, ...t.receive]))];
-      const cardMap = {};
-      await Promise.all(allIds.map(async id => {
-        const c = await window.TCGdex.getCardDetail(id).catch(() => null);
-        if (c) cardMap[id] = c;
-      }));
-
-      feed.innerHTML = trades.map(t => {
-        const renderMini = (id) => {
-          const c = cardMap[id];
-          if (!c) return `<div class="mini-card"><div class="skel"></div></div>`;
-          const img = window.TCGdex.getCardImage(c, 'low', 'webp');
-          return `<div class="mini-card"><img src="${img}" alt="${c.name}" loading="lazy"></div>`;
-        };
-        return `
-          <div class="trade-card">
-            <div class="trader-info">
-              <div class="trader-avatar">${t.who}</div>
-              <div>
-                <div class="trader-name">${t.name}</div>
-                <div class="trader-meta">${t.meta}</div>
-              </div>
-            </div>
-            <div class="trade-cards-row">
-              <div class="mini-cards">${t.give.map(renderMini).join('')}</div>
-              <div class="vs-divider">⇌</div>
-              <div class="mini-cards">${t.receive.map(renderMini).join('')}</div>
-            </div>
-            <div class="trade-action">
-              <div class="trade-time">Il y a ${t.time}</div>
-              <button class="btn btn-primary btn-small">Répondre</button>
-            </div>
-          </div>`;
-      }).join('');
-    } catch (e) {
-      console.error(e);
-      feed.innerHTML = '<div class="empty-state"><div class="emoji">⚠️</div><h3>Erreur</h3></div>';
-    }
-  }
-
-  fillComposer();
-  renderTradeFeed();
-})();
-</script>
+<script src="trade-page.js"></script>
 </body>
 </html>

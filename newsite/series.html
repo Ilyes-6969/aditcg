@@ -166,6 +166,78 @@
     filter: drop-shadow(0 6px 12px rgba(0,0,0,0.3));
   }
 
+  /* LIST VIEW */
+  .collections-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .set-row {
+    display: grid;
+    grid-template-columns: 80px 1fr auto auto auto;
+    gap: 24px;
+    align-items: center;
+    padding: 14px 20px;
+    background: var(--white);
+    border: 1.5px solid var(--gray-line);
+    border-radius: var(--radius);
+    transition: all 0.2s;
+    color: inherit;
+  }
+  .set-row:hover {
+    border-color: var(--red);
+    transform: translateX(4px);
+    box-shadow: var(--shadow-md);
+  }
+  .set-row-logo {
+    width: 70px; height: 56px;
+    background: var(--gray-bg);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .set-row-logo img { max-width: 90%; max-height: 90%; object-fit: contain; }
+  .set-row-logo .ph { font-size: 24px; }
+  .set-row-info { min-width: 0; }
+  .set-row-title {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 16px;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .set-row-sub {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--gray-text);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 2px;
+  }
+  .set-row-stat { text-align: center; min-width: 80px; }
+  .set-row-stat .v {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 16px;
+    color: var(--ink);
+  }
+  .set-row-stat .l {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--gray-text);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 2px;
+  }
+  @media (max-width: 700px) {
+    .set-row { grid-template-columns: 60px 1fr auto; gap: 12px; }
+    .set-row-stat:not(:last-child) { display: none; }
+  }
+
   .coll-card-body { padding: 18px; }
   .coll-card-title {
     font-family: var(--font-display);
@@ -339,8 +411,8 @@
           <option value="name">Nom A-Z</option>
         </select>
         <div class="view-toggle">
-          <button class="active">Grille</button>
-          <button>Liste</button>
+          <button class="active" data-view="grid">Grille</button>
+          <button data-view="list">Liste</button>
         </div>
       </div>
     </div>
@@ -375,7 +447,10 @@
   </div>
 </footer>
 
+<script src="auth.js"></script>
+<script src="storage.js"></script>
 <script src="tcgdex-api.js"></script>
+<script src="ui.js"></script>
 <script src="app.js"></script>
 <script>
 (async () => {
@@ -415,10 +490,28 @@
   function applyFilter(sets) {
     if (activeFilter === 'all') return sets;
     if (activeFilter === 'recent') return sets.filter(s => ((s.releaseDate || '').slice(0,4)) >= '2022');
-    if (activeFilter === 'wotc') return sets.filter(s => (s.serie?.id === 'base' || (s.releaseDate || '') < '2003-08-00'));
-    if (activeFilter === 'popular') return sets.filter(s => (s.cardCount?.total || 0) >= 150);
+    if (activeFilter === 'wotc') {
+      // WOTC era: base, jungle, fossil, team rocket, gym, neo (1999-2003)
+      const wotcSeries = ['base', 'neo', 'ecard'];
+      return sets.filter(s => wotcSeries.includes(s.serie?.id) || (s.releaseDate || '') < '2003-08-00');
+    }
+    if (activeFilter === 'popular') {
+      // Sets with 150+ cards OR popular series like Evolving Skies, Crown Zenith, etc
+      const popularIds = ['swsh7', 'swsh12.5', 'sv03.5', 'sv08.5', 'swsh4'];
+      return sets.filter(s => (s.cardCount?.total || 0) >= 150 || popularIds.includes(s.id));
+    }
     return sets;
   }
+
+  let viewMode = 'grid';
+  document.querySelectorAll('[data-view]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-view]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      viewMode = btn.dataset.view;
+      render();
+    });
+  });
 
   function applySort(sets) {
     const list = [...sets];
@@ -450,6 +543,7 @@
 
     container.innerHTML = Object.values(grouped).map(grp => {
       const totalCards = grp.sets.reduce((s, x) => s + (x.cardCount?.total || 0), 0);
+      const isList = viewMode === 'list';
       return `
         <div class="serie-block">
           <div class="serie-block-head">
@@ -458,12 +552,34 @@
               <strong>${grp.sets.length}</strong> sets · <strong>${totalCards.toLocaleString('fr-FR')}</strong> cartes
             </div>
           </div>
-          <div class="collections-grid">
-            ${grp.sets.map(renderSetCard).join('')}
+          <div class="${isList ? 'collections-list' : 'collections-grid'}">
+            ${grp.sets.map(set => isList ? renderSetRow(set) : renderSetCard(set)).join('')}
           </div>
         </div>
       `;
     }).join('');
+  }
+
+  function renderSetRow(set) {
+    const logo = window.TCGdex.getSetLogo(set);
+    const year = (set.releaseDate || '????').slice(0, 4);
+    const total = set.cardCount?.total || 0;
+    const floor = Math.round(window.TCGdex.estimateSetFloor(set));
+    return `
+      <a href="set.html?id=${set.id}" class="set-row">
+        <div class="set-row-logo">
+          ${logo
+            ? `<img src="${logo}" alt="${set.name}" onerror="this.outerHTML='<div class=&quot;ph&quot;>🃏</div>'">`
+            : `<div class="ph">🃏</div>`}
+        </div>
+        <div class="set-row-info">
+          <div class="set-row-title">${set.name}</div>
+          <div class="set-row-sub">${set.serie?.name || 'Série'} · ${set.id}</div>
+        </div>
+        <div class="set-row-stat"><div class="v">${year}</div><div class="l">Année</div></div>
+        <div class="set-row-stat"><div class="v">${total}</div><div class="l">Cartes</div></div>
+        <div class="set-row-stat"><div class="v">${window.TCGdex.formatPrice(floor)}</div><div class="l">Floor</div></div>
+      </a>`;
   }
 
   try {
