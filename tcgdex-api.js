@@ -159,6 +159,14 @@ function getRealPrice(card) {
         high: null,
         holoPrice: holo ? Math.round(holo * 100) / 100 : null,
         normalPrice: Math.round(main * 100) / 100,
+        // EXTRA POINTS for chart + detail display
+        avg1: cm.avg1 ?? null,
+        avg7: cm.avg7 ?? null,
+        avg30: cm.avg30 ?? null,
+        trend: cm.trend ?? null,
+        reverseHolo: cm['reverse-holo-avg'] ?? cm['reverse-holo-trend'] ?? null,
+        suggestedPrice: cm.suggestedPrice ?? null,
+        updated: cm.updated ?? null,
       };
     }
   }

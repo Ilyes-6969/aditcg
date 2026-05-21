@@ -142,6 +142,113 @@
     margin-top: 16px;
   }
 
+  /* PRICE DETAIL BLOCK (style Cardmarket) */
+  .price-detail-block {
+    background: var(--white);
+    border: 1px solid var(--gray-line);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    margin-bottom: 24px;
+  }
+  .price-detail-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--gray-line);
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .price-detail-head h3 {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .price-update {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--gray-text);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .price-table { width: 100%; border-collapse: collapse; }
+  .price-table td {
+    padding: 12px 0;
+    font-size: 14px;
+    color: var(--gray-text);
+    border-bottom: 1px solid var(--gray-line);
+  }
+  .price-table tr:last-child td { border-bottom: none; }
+  .price-table td.num {
+    text-align: right;
+    font-family: var(--font-display);
+    font-weight: 800;
+    color: var(--ink);
+    font-size: 16px;
+  }
+  .price-table strong { color: var(--ink); font-weight: 700; }
+
+  .price-chart-block {
+    background: var(--gray-bg);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-top: 24px;
+  }
+  .price-chart-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .price-chart-head strong {
+    font-family: var(--font-display);
+    font-size: 14px;
+    color: var(--ink);
+  }
+  .price-chart-head .legend {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--gray-text);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .price-chart-head .legend .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+  }
+  .price-chart-head .legend .dot.red { background: var(--red); }
+  .price-chart {
+    width: 100%;
+    height: 180px;
+    display: block;
+  }
+  .chart-x-labels {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 20px 0;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--gray-text);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .cardmarket-link {
+    display: block;
+    margin-top: 20px;
+    text-align: center;
+    text-decoration: none;
+  }
+
+  /* (legacy classes for any straggler usages) */
   .stats-section {
     background: var(--gray-bg);
     border-radius: var(--radius-lg);
@@ -398,21 +505,40 @@
           </div>
         </div>
 
-        <div class="stats-section">
-          <div class="stats-grid">
-            <div class="stat-item">
-              <div class="l">Plus bas (low)</div>
-              <div class="v">${priceData.low !== null ? window.TCGdex.formatPrice(priceData.low) : '—'}</div>
-            </div>
-            <div class="stat-item">
-              <div class="l">${priceData.holoPrice !== null ? 'Version Holo' : 'PSA 10 (est.)'}</div>
-              <div class="v">${priceData.holoPrice !== null ? window.TCGdex.formatPrice(priceData.holoPrice) : window.TCGdex.formatPrice(price * 3.5)}</div>
-            </div>
-            <div class="stat-item">
-              <div class="l">Ventes 30j</div>
-              <div class="v">${Math.floor(20 + Math.random() * 80)}</div>
-            </div>
+        <div class="price-detail-block">
+          <div class="price-detail-head">
+            <h3>Détails Cardmarket</h3>
+            <div class="price-update">${priceData.updated ? 'Mis à jour ' + new Date(priceData.updated).toLocaleDateString('fr-FR') : isReal ? 'Données Cardmarket en temps réel' : 'Estimation'}</div>
           </div>
+
+          <table class="price-table">
+            <tbody>
+              <tr><td>Prix le plus bas</td><td class="num">${priceData.low !== null && priceData.low !== undefined ? window.TCGdex.formatPrice(priceData.low) : '—'}</td></tr>
+              <tr><td>Tendance des prix</td><td class="num">${priceData.trend !== null && priceData.trend !== undefined ? window.TCGdex.formatPrice(priceData.trend) : '—'}</td></tr>
+              <tr><td>Prix moyen 30 jours</td><td class="num">${priceData.avg30 !== null && priceData.avg30 !== undefined ? window.TCGdex.formatPrice(priceData.avg30) : '—'}</td></tr>
+              <tr><td>Prix moyen 7 jours</td><td class="num">${priceData.avg7 !== null && priceData.avg7 !== undefined ? window.TCGdex.formatPrice(priceData.avg7) : '—'}</td></tr>
+              <tr><td>Prix moyen 1 jour</td><td class="num">${priceData.avg1 !== null && priceData.avg1 !== undefined ? window.TCGdex.formatPrice(priceData.avg1) : '—'}</td></tr>
+              ${priceData.holoPrice !== null ? `<tr><td>Version <strong>Holo</strong></td><td class="num">${window.TCGdex.formatPrice(priceData.holoPrice)}</td></tr>` : ''}
+              ${priceData.reverseHolo !== null ? `<tr><td>Version <strong>Reverse Holo</strong></td><td class="num">${window.TCGdex.formatPrice(priceData.reverseHolo)}</td></tr>` : ''}
+              ${priceData.suggestedPrice !== null && priceData.suggestedPrice !== undefined ? `<tr><td>Prix suggéré</td><td class="num">${window.TCGdex.formatPrice(priceData.suggestedPrice)}</td></tr>` : ''}
+            </tbody>
+          </table>
+
+          ${isReal ? `
+            <div class="price-chart-block">
+              <div class="price-chart-head">
+                <strong>Évolution du prix moyen</strong>
+                <span class="legend"><span class="dot red"></span> Prix moyen Cardmarket</span>
+              </div>
+              <svg class="price-chart" viewBox="0 0 600 180" preserveAspectRatio="none"></svg>
+              <div class="chart-x-labels">
+                <span>30j</span><span>7j</span><span>1j</span><span>Maintenant</span>
+              </div>
+            </div>
+            <a class="btn btn-ghost cardmarket-link" href="https://www.cardmarket.com/fr/Pokemon/Products/Search?searchString=${encodeURIComponent(card.name)}" target="_blank" rel="noopener">
+              Voir toutes les offres sur Cardmarket →
+            </a>
+          ` : ''}
         </div>
 
         <div class="card-details">
@@ -429,6 +555,51 @@
         </div>
       </div>
     `;
+
+    // Render price chart with real Cardmarket data points
+    if (isReal) {
+      const points = [
+        { label: '30j', value: priceData.avg30 },
+        { label: '7j', value: priceData.avg7 },
+        { label: '1j', value: priceData.avg1 },
+        { label: 'Now', value: priceData.trend },
+      ].filter(p => p.value !== null && p.value !== undefined && !isNaN(p.value));
+
+      if (points.length >= 2) {
+        const values = points.map(p => p.value);
+        const minV = Math.min(...values);
+        const maxV = Math.max(...values);
+        const range = maxV - minV || 1;
+        const pad = 0.1 * range;
+        const yMin = minV - pad;
+        const yMax = maxV + pad;
+
+        const xs = points.map((_, i) => (i / (points.length - 1)) * 560 + 20);
+        const ys = points.map(p => 160 - ((p.value - yMin) / (yMax - yMin)) * 140 + 10);
+
+        const linePath = points.map((_, i) => `${i === 0 ? 'M' : 'L'}${xs[i]},${ys[i]}`).join(' ');
+        const fillPath = `M${xs[0]},170 L${xs.map((x, i) => `${x},${ys[i]}`).join(' L')} L${xs[xs.length-1]},170 Z`;
+
+        const dots = points.map((p, i) => `<circle cx="${xs[i]}" cy="${ys[i]}" r="4" fill="var(--red)" stroke="var(--white)" stroke-width="2"/>`).join('');
+        const labels = points.map((p, i) => `<text x="${xs[i]}" y="${Math.max(ys[i] - 12, 14)}" text-anchor="middle" font-family="JetBrains Mono" font-size="10" font-weight="700" fill="var(--ink)">${window.TCGdex.formatPrice(p.value)}</text>`).join('');
+
+        const svg = document.querySelector('.price-chart');
+        if (svg) {
+          svg.innerHTML = `
+            <defs>
+              <linearGradient id="chartFill" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stop-color="#dc0a2d" stop-opacity="0.25"/>
+                <stop offset="100%" stop-color="#dc0a2d" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path d="${fillPath}" fill="url(#chartFill)"/>
+            <path d="${linePath}" fill="none" stroke="#dc0a2d" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+            ${dots}
+            ${labels}
+          `;
+        }
+      }
+    }
 
     // Related cards from same set
     if (card.set?.id) {
