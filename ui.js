@@ -447,16 +447,25 @@
     document.getElementById('login-email').focus();
   }
 
-  function handleLogin() {
+  async function handleLogin() {
     const email = document.getElementById('login-email').value;
     const password = document.getElementById('login-password').value;
-    const res = window.Auth.login({ email, password });
-    if (res.success) {
-      closeModal();
-      toast(`Bienvenue, ${res.user.name} !`, 'success');
-      setTimeout(() => window.location.reload(), 400);
-    } else {
-      showFormError('login-error', res.errors);
+    const submitBtn = document.getElementById('login-submit');
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Connexion…'; }
+    try {
+      const res = await window.Auth.login({ email, password });
+      if (res.success) {
+        closeModal();
+        toast(`Bienvenue, ${res.user.name} !`, 'success');
+        setTimeout(() => window.location.reload(), 400);
+      } else {
+        showFormError('login-error', res.errors);
+      }
+    } catch (e) {
+      console.error('Login error:', e);
+      showFormError('login-error', [e.message || 'Erreur inconnue']);
+    } finally {
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Se connecter'; }
     }
   }
 
@@ -506,20 +515,29 @@
     document.getElementById('signup-name').focus();
   }
 
-  function handleSignup() {
+  async function handleSignup() {
     const data = {
       name: document.getElementById('signup-name').value,
       username: document.getElementById('signup-username').value,
       email: document.getElementById('signup-email').value,
       password: document.getElementById('signup-password').value,
     };
-    const res = window.Auth.signup(data);
-    if (res.success) {
-      closeModal();
-      toast(`Compte créé ! Bienvenue ${res.user.name} 🎉`, 'success');
-      setTimeout(() => window.location.reload(), 600);
-    } else {
-      showFormError('signup-error', res.errors);
+    const submitBtn = document.getElementById('signup-submit');
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Création…'; }
+    try {
+      const res = await window.Auth.signup(data);
+      if (res.success) {
+        closeModal();
+        toast(`Compte créé ! Bienvenue ${res.user.name} 🎉`, 'success');
+        setTimeout(() => window.location.reload(), 600);
+      } else {
+        showFormError('signup-error', res.errors);
+      }
+    } catch (e) {
+      console.error('Signup error:', e);
+      showFormError('signup-error', [e.message || 'Erreur inconnue']);
+    } finally {
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Créer mon compte'; }
     }
   }
 
@@ -528,6 +546,14 @@
     if (!el) return;
     el.style.display = 'block';
     el.className = 'form-error';
+
+    // Defensive: ensure errors is a non-empty array of strings
+    if (!Array.isArray(errors) || errors.length === 0) {
+      errors = ['Une erreur est survenue. Vérifie la console (F12) pour plus de détails.'];
+    }
+    errors = errors.filter(e => e).map(e => String(e));
+    if (errors.length === 0) errors = ['Erreur inconnue'];
+
     el.innerHTML = errors.length === 1
       ? errors[0]
       : `Veuillez corriger :<ul>${errors.map(e => `<li>${e}</li>`).join('')}</ul>`;
