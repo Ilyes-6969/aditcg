@@ -396,10 +396,7 @@
   </div>
 </footer>
 
-<script src="auth.js"></script>
-<script src="storage.js"></script>
 <script src="tcgdex-api.js"></script>
-<script src="ui.js"></script>
 <script src="app.js"></script>
 <script>
 (async () => {
@@ -441,12 +438,8 @@
     const realCoverage = pricedCount > 0 ? Math.round((realCount / pricedCount) * 100) : 0;
 
     // Pseudo-random "owned" 60% of cards
-    // Use real Storage data
-    const realCollection = window.Storage.getCollection();
-    cardsList.forEach(c => {
-      if (realCollection.includes(c.id)) ownedSet.add(c.id);
-    });
-    const ownedCount = ownedSet.size;
+    const ownedCount = Math.floor(cardsList.length * 0.6);
+    cardsList.slice(0, ownedCount).forEach(c => ownedSet.add(c.id));
 
     // HERO
     document.getElementById('set-hero-grid').innerHTML = `
@@ -479,9 +472,9 @@
 
     // COMPLETION
     let ownedValue = 0, missingValue = 0;
-    cardsList.forEach((c) => {
+    cardsList.forEach((c, idx) => {
       const p = window.TCGdex.getRealPrice(c)?.price || 0;
-      if (ownedSet.has(c.id)) ownedValue += p;
+      if (idx < ownedCount) ownedValue += p;
       else missingValue += p;
     });
     const pct = cardsList.length > 0 ? Math.round((ownedCount / cardsList.length) * 100) : 0;
@@ -514,8 +507,6 @@
     document.getElementById('completion').style.display = 'none';
   }
 
-  let displayedSetCount = 36; // initial cards to render
-
   function renderCards() {
     const grid = document.getElementById('cards-grid');
     let filtered = allCards;
@@ -531,118 +522,29 @@
       return;
     }
 
-    const toRender = filtered.slice(0, displayedSetCount);
-
-    grid.innerHTML = toRender.map(c => {
+    grid.innerHTML = filtered.map(c => {
       const img = window.TCGdex.getCardImage(c, 'low', 'webp');
       const price = window.TCGdex.estimatePrice(c);
       const isOwned = ownedSet.has(c.id);
-      const isFav = window.Storage.isFavorite(c.id);
       return `
-        <div class="pkmn-card ${isOwned ? '' : 'not-owned'}" style="position: relative;">
-          <button class="fav-toggle ${isFav ? 'active' : ''}" data-fav-id="${c.id}" aria-label="Favori"></button>
-          <button class="owned-toggle ${isOwned ? 'active' : ''}" data-owned-id="${c.id}">${isOwned ? '✓ POSSÉDÉE' : '+ AJOUTER'}</button>
-          <a href="carte.html?id=${c.id}" style="display:block; color: inherit;">
-            <div class="pkmn-card-img">
-              <img src="${img}" alt="${c.name}" loading="lazy"
-                onerror="this.parentNode.innerHTML='<div class=&quot;skel&quot;></div>'">
+        <a href="carte.html?id=${c.id}" class="pkmn-card ${isOwned ? '' : 'not-owned'}">
+          ${isOwned ? '<div class="pkmn-card-owned-badge">✓</div>' : ''}
+          <div class="pkmn-card-img">
+            <img src="${img}" alt="${c.name}" loading="lazy"
+              onerror="this.parentNode.innerHTML='<div class=&quot;skel&quot;></div>'">
+          </div>
+          <div class="pkmn-card-info">
+            <div class="pkmn-card-name">${c.name}</div>
+            <div class="pkmn-card-meta">
+              <span>${c.localId || '?'}/${c.localId ? allCards.length : '?'}</span>
+              <span>${(c.rarity || '').substring(0, 12)}</span>
             </div>
-            <div class="pkmn-card-info">
-              <div class="pkmn-card-name">${c.name}</div>
-              <div class="pkmn-card-meta">
-                <span>${c.localId || '?'}/${c.localId ? allCards.length : '?'}</span>
-                <span>${(c.rarity || '').substring(0, 12)}</span>
-              </div>
-              <div class="pkmn-card-foot">
-                <div class="pkmn-card-price">${window.TCGdex.formatPrice(price)}</div>
-              </div>
+            <div class="pkmn-card-foot">
+              <div class="pkmn-card-price">${window.TCGdex.formatPrice(price)}</div>
             </div>
-          </a>
-        </div>`;
+          </div>
+        </a>`;
     }).join('');
-
-    // Load more button
-    let moreContainer = document.getElementById('set-load-more');
-    if (!moreContainer) {
-      moreContainer = document.createElement('div');
-      moreContainer.id = 'set-load-more';
-      grid.parentNode.insertBefore(moreContainer, grid.nextSibling);
-    }
-
-    if (filtered.length > displayedSetCount) {
-      moreContainer.innerHTML = `
-        <button class="btn btn-ghost" id="set-show-more" style="margin: 30px auto; display: block; min-width: 220px;">
-          Voir ${Math.min(36, filtered.length - displayedSetCount)} cartes de plus
-          <span style="opacity: 0.6; margin-left: 8px;">(${displayedSetCount}/${filtered.length})</span>
-        </button>
-      `;
-      document.getElementById('set-show-more').addEventListener('click', () => {
-        displayedSetCount += 36;
-        renderCards();
-        // Smooth scroll after render
-        setTimeout(() => {
-          window.scrollBy({ top: 200, behavior: 'smooth' });
-        }, 50);
-      });
-
-      // Auto-load when scrolling near the bottom (IntersectionObserver)
-      const btn = document.getElementById('set-show-more');
-      if (btn && 'IntersectionObserver' in window) {
-        const observer = new IntersectionObserver((entries) => {
-          if (entries[0].isIntersecting) {
-            displayedSetCount += 36;
-            observer.disconnect();
-            renderCards();
-          }
-        }, { rootMargin: '300px' });
-        observer.observe(btn);
-      }
-    } else {
-      moreContainer.innerHTML = '';
-    }
-  }
-
-  // Delegated handlers for owned/favorite toggles
-  document.getElementById('cards-grid').addEventListener('click', (e) => {
-    const favBtn = e.target.closest('.fav-toggle');
-    const ownedBtn = e.target.closest('.owned-toggle');
-
-    if (favBtn) {
-      e.preventDefault();
-      e.stopPropagation();
-      const id = favBtn.dataset.favId;
-      const now = window.Storage.toggleFavorite(id);
-      favBtn.classList.toggle('active', now);
-      window.UI.toast(now ? 'Ajouté aux favoris ♥' : 'Retiré des favoris', now ? 'success' : 'info');
-      return;
-    }
-
-    if (ownedBtn) {
-      e.preventDefault();
-      e.stopPropagation();
-      const id = ownedBtn.dataset.ownedId;
-      const now = window.Storage.toggleOwned(id);
-      ownedBtn.classList.toggle('active', now);
-      ownedBtn.innerHTML = now ? '✓ POSSÉDÉE' : '+ AJOUTER';
-      // Update card grayscale
-      const card = ownedBtn.closest('.pkmn-card');
-      if (card) card.classList.toggle('not-owned', !now);
-      if (now) ownedSet.add(id); else ownedSet.delete(id);
-      window.UI.toast(now ? 'Carte ajoutée à votre collection !' : 'Carte retirée de votre collection', now ? 'success' : 'info');
-      // Update completion bar
-      updateCompletionBar();
-      return;
-    }
-  });
-
-  function updateCompletionBar() {
-    const pct = allCards.length > 0 ? Math.round((ownedSet.size / allCards.length) * 100) : 0;
-    const fill = document.querySelector('.completion-fill');
-    if (fill) fill.style.width = pct + '%';
-    const title = document.querySelector('.completion-title');
-    if (title) title.innerHTML = `${ownedSet.size} sur ${allCards.length} cartes <span class="pct">(${pct}%)</span>`;
-    const countEl = document.getElementById('cards-count');
-    if (countEl) countEl.innerHTML = `<strong>${allCards.length}</strong> cartes · <span style="color: var(--green);">${ownedSet.size} possédées</span>`;
   }
 
   document.querySelectorAll('#rarity-filter .filter-chip').forEach(chip => {
@@ -650,7 +552,6 @@
       document.querySelectorAll('#rarity-filter .filter-chip').forEach(c => c.classList.remove('active'));
       chip.classList.add('active');
       activeFilter = chip.dataset.rarity;
-      displayedSetCount = 36;
       renderCards();
     });
   });
