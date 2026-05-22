@@ -2,17 +2,19 @@
 // STORAGE.JS — Données persistantes via Supabase
 // Collections, favoris, échanges, activité
 // ============================================
-//
-// Stratégie : on lit/écrit en direct sur Supabase.
-// Pour la perf, on cache les listes en mémoire pendant la session.
-// Toute écriture invalide le cache.
 
-const _cache = {
-  collection: null,    // [{ id, card_id, condition, quantity }]
-  favorites: null,     // [{ id, card_id }]
-  trades: null,
-  activity: null,
-  listings: null,
+(function() {
+  'use strict';
+
+  // Already loaded? Skip
+  if (window.Storage && window.Storage.getCollection) return;
+
+  const _cache = {
+    collection: null,    // [{ id, card_id, condition, quantity }]
+    favorites: null,     // [{ id, card_id }]
+    trades: null,
+    activity: null,
+    listings: null,
 };
 
 function invalidate(key) {
@@ -306,3 +308,5 @@ window.Storage = {
   seedDemoData,
   invalidate,
 };
+
+})();
