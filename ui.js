@@ -617,43 +617,41 @@
   // SETTINGS MODAL (avatar customization)
   // ============================================
 
-  // Pokémon avatars: small list of iconic Pokemon with their TCGdex artwork
+  // Pokémon avatars: official artwork (PokéAPI sprites) — clean centered headshots
+  // Source: https://github.com/PokeAPI/sprites (free, official Nintendo artwork)
   const POKEMON_AVATARS = [
-    { id: 'pikachu', name: 'Pikachu', card: 'base1-58' },
-    { id: 'charizard', name: 'Dracaufeu', card: 'base1-4' },
-    { id: 'mewtwo', name: 'Mewtwo', card: 'base1-10' },
-    { id: 'blastoise', name: 'Tortank', card: 'base1-2' },
-    { id: 'venusaur', name: 'Florizarre', card: 'base1-15' },
-    { id: 'eevee', name: 'Évoli', card: 'jungle1-51' },
-    { id: 'snorlax', name: 'Ronflex', card: 'base2-11' },
-    { id: 'gengar', name: 'Ectoplasma', card: 'base1-5' },
-    { id: 'gyarados', name: 'Léviator', card: 'base1-6' },
-    { id: 'dragonite', name: 'Dracolosse', card: 'fossil1-4' },
-    { id: 'lugia', name: 'Lugia', card: 'neo1-9' },
-    { id: 'mew', name: 'Mew', card: 'wp1-1' },
-    { id: 'rayquaza', name: 'Rayquaza', card: 'ex3-22' },
-    { id: 'lucario', name: 'Lucario', card: 'dp1-6' },
-    { id: 'umbreon', name: 'Noctali', card: 'neo2-13' },
-    { id: 'sylveon', name: 'Nymphali', card: 'xy1-89' },
-    { id: 'greninja', name: 'Amphinobi', card: 'xy1-41' },
-    { id: 'arceus', name: 'Arceus', card: 'pl4-aj' },
+    { id: 'pikachu',    name: 'Pikachu',     dexNum: 25 },
+    { id: 'charizard',  name: 'Dracaufeu',   dexNum: 6 },
+    { id: 'mewtwo',     name: 'Mewtwo',      dexNum: 150 },
+    { id: 'blastoise',  name: 'Tortank',     dexNum: 9 },
+    { id: 'venusaur',   name: 'Florizarre',  dexNum: 3 },
+    { id: 'eevee',      name: 'Évoli',       dexNum: 133 },
+    { id: 'snorlax',    name: 'Ronflex',     dexNum: 143 },
+    { id: 'gengar',     name: 'Ectoplasma',  dexNum: 94 },
+    { id: 'gyarados',   name: 'Léviator',    dexNum: 130 },
+    { id: 'dragonite',  name: 'Dracolosse',  dexNum: 149 },
+    { id: 'mew',        name: 'Mew',         dexNum: 151 },
+    { id: 'lugia',      name: 'Lugia',       dexNum: 249 },
+    { id: 'hooh',       name: 'Ho-Oh',       dexNum: 250 },
+    { id: 'rayquaza',   name: 'Rayquaza',    dexNum: 384 },
+    { id: 'lucario',    name: 'Lucario',     dexNum: 448 },
+    { id: 'umbreon',    name: 'Noctali',     dexNum: 197 },
+    { id: 'espeon',     name: 'Mentali',     dexNum: 196 },
+    { id: 'sylveon',    name: 'Nymphali',    dexNum: 700 },
+    { id: 'greninja',   name: 'Amphinobi',   dexNum: 658 },
+    { id: 'arceus',     name: 'Arceus',      dexNum: 493 },
+    { id: 'garchomp',   name: 'Carchacrok',  dexNum: 445 },
+    { id: 'tyranitar',  name: 'Tyranocif',   dexNum: 248 },
+    { id: 'metagross',  name: 'Métalosse',   dexNum: 376 },
+    { id: 'gardevoir',  name: 'Gardevoir',   dexNum: 282 },
   ];
 
-  // Cache rendered avatar URLs
-  const _avatarUrlCache = {};
-  async function getPokemonAvatarUrl(pokemonAvatarId) {
-    if (_avatarUrlCache[pokemonAvatarId]) return _avatarUrlCache[pokemonAvatarId];
+  // Build URL from dex number — instant, no network call needed
+  function getPokemonAvatarUrl(pokemonAvatarId) {
     const av = POKEMON_AVATARS.find(p => p.id === pokemonAvatarId);
     if (!av) return null;
-    try {
-      const card = await window.TCGdex.getCardDetail(av.card);
-      if (card?.image) {
-        const url = window.TCGdex.getCardImage(card, 'low', 'webp');
-        _avatarUrlCache[pokemonAvatarId] = url;
-        return url;
-      }
-    } catch (e) {}
-    return null;
+    // Official artwork from PokéAPI (free, hosted on GitHub)
+    return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${av.dexNum}.png`;
   }
 
   async function openSettings() {
@@ -692,6 +690,29 @@
             </div>
           </div>
 
+          <div style="margin-bottom: 24px;">
+            <div style="font-size: 11px; font-weight: 700; color: var(--gray-text); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 14px;">Informations</div>
+
+            <div class="form-field">
+              <label>Nom affiché publiquement</label>
+              <input type="text" id="setting-name" placeholder="Sacha Ketchum" value="${user.name || ''}" maxlength="40">
+              <div class="hint">Affiché en grand sur votre profil.</div>
+            </div>
+
+            <div class="form-field">
+              <label>Nom d'utilisateur (@username)</label>
+              <input type="text" id="setting-username" placeholder="sacha_pkmn" value="${user.username || ''}" maxlength="20">
+              <div class="hint">Sert à vous trouver dans la barre de recherche. 3-20 caractères, lettres/chiffres/underscore.</div>
+            </div>
+
+            <div class="form-field">
+              <label>Localisation</label>
+              <input type="text" id="setting-location" placeholder="France" value="${user.location || ''}" maxlength="40">
+            </div>
+
+            <div id="settings-error" style="display:none;"></div>
+          </div>
+
         </div>
         <div class="modal-footer">
           <button class="btn btn-primary btn-large" id="save-settings">Enregistrer</button>
@@ -721,25 +742,28 @@
     // Render Pokemon grid
     const grid = document.getElementById('avatar-grid');
     const current = window.Auth.getCurrentUser();
-    grid.innerHTML = POKEMON_AVATARS.map(p => `
+    grid.innerHTML = POKEMON_AVATARS.map(p => {
+      const url = getPokemonAvatarUrl(p.id);
+      const isSelected = current?.avatarType === 'pokemon' && current?.avatarValue === p.id;
+      return `
       <button class="avatar-option" data-avatar="${p.id}" title="${p.name}" style="
+        position: relative;
         width: 100%; aspect-ratio: 1; border-radius: 50%; cursor: pointer;
-        background: var(--gray-bg); border: 3px solid ${current.avatarType === 'pokemon' && current.avatarValue === p.id ? 'var(--red)' : 'transparent'};
+        background: linear-gradient(135deg, #f0f1f5, #d4d6e5);
+        border: 3px solid ${isSelected ? 'var(--red)' : 'transparent'};
         overflow: hidden; transition: all 0.2s; padding: 0;
         display: flex; align-items: center; justify-content: center;
       ">
-        <div class="av-placeholder" style="font-size: 9px; font-weight: 700; color: var(--gray-text); text-align: center; padding: 4px;">${p.name}</div>
+        <img src="${url}" alt="${p.name}" loading="lazy" style="width: 90%; height: 90%; object-fit: contain; transition: transform 0.2s;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+        <div style="display:none; font-size: 9px; font-weight: 700; color: var(--gray-text); padding: 4px; text-align: center;">${p.name}</div>
       </button>
-    `).join('');
+    `;
+    }).join('');
 
-    // Lazy-load avatar images
-    POKEMON_AVATARS.forEach(async (p) => {
-      const url = await getPokemonAvatarUrl(p.id);
-      if (!url) return;
-      const btn = grid.querySelector(`[data-avatar="${p.id}"]`);
-      if (btn) {
-        btn.innerHTML = `<img src="${url}" alt="${p.name}" style="width:100%; height:100%; object-fit:cover;" onerror="this.outerHTML='<div style=&quot;font-size:9px; font-weight:700; color:var(--gray-text); padding:4px; text-align:center;&quot;>${p.name}</div>'">`;
-      }
+    // Add hover scaling
+    grid.querySelectorAll('.avatar-option img').forEach(img => {
+      img.parentElement.addEventListener('mouseenter', () => { img.style.transform = 'scale(1.1)'; });
+      img.parentElement.addEventListener('mouseleave', () => { img.style.transform = 'scale(1)'; });
     });
 
     let selectedAvatar = current.avatarType === 'pokemon' ? current.avatarValue : null;
@@ -774,20 +798,74 @@
     });
 
     document.getElementById('save-settings')?.addEventListener('click', async () => {
-      if (selectedAvatar) {
-        const url = await getPokemonAvatarUrl(selectedAvatar);
-        window.Auth.updateProfile({
-          avatarType: 'pokemon',
-          avatarValue: selectedAvatar,
-          avatarUrl: url,
-        });
-      } else {
-        window.Auth.updateProfile({
-          avatarType: 'default',
-          avatarValue: null,
-          avatarUrl: null,
-        });
+      const saveBtn = document.getElementById('save-settings');
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Enregistrement…';
+
+      const newName = document.getElementById('setting-name')?.value?.trim() || '';
+      const newUsername = (document.getElementById('setting-username')?.value || '').toLowerCase().trim();
+      const newLocation = document.getElementById('setting-location')?.value?.trim() || '';
+
+      // Validation
+      const errors = [];
+      if (newName.length < 2) errors.push('Le nom doit faire au moins 2 caractères');
+      if (!/^[a-z0-9_]{3,20}$/.test(newUsername)) {
+        errors.push('Username invalide : 3-20 caractères, lettres minuscules, chiffres et underscore uniquement');
       }
+      if (errors.length > 0) {
+        showFormError('settings-error', errors);
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Enregistrer';
+        return;
+      }
+
+      // Check username availability if changed
+      if (newUsername !== user.username) {
+        const sb = window.SupabaseClient?.client;
+        const { data: existing } = await sb
+          .from('profiles')
+          .select('id')
+          .eq('username', newUsername)
+          .neq('id', user.id)
+          .maybeSingle();
+        if (existing) {
+          showFormError('settings-error', ['Ce nom d\'utilisateur est déjà pris']);
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Enregistrer';
+          return;
+        }
+      }
+
+      // Build update payload
+      const updates = {
+        name: newName,
+        location: newLocation,
+      };
+      // Username update via direct Supabase call (not in updateProfile signature)
+      if (newUsername !== user.username) {
+        const sb = window.SupabaseClient?.client;
+        const { error } = await sb.from('profiles').update({ username: newUsername }).eq('id', user.id);
+        if (error) {
+          console.error(error);
+          showFormError('settings-error', ['Erreur lors de la mise à jour du nom d\'utilisateur']);
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Enregistrer';
+          return;
+        }
+      }
+
+      if (selectedAvatar) {
+        const url = getPokemonAvatarUrl(selectedAvatar);
+        updates.avatarType = 'pokemon';
+        updates.avatarValue = selectedAvatar;
+        updates.avatarUrl = url;
+      } else {
+        updates.avatarType = 'default';
+        updates.avatarValue = null;
+        updates.avatarUrl = null;
+      }
+
+      await window.Auth.updateProfile(updates);
       toast('Paramètres enregistrés !', 'success');
       closeModal();
       setTimeout(() => location.reload(), 600);
