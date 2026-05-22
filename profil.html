@@ -5,7 +5,7 @@
 (function() {
   try {
     var saved = localStorage.getItem('aditcg_theme');
-    var theme = saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var theme = saved || 'dark';
     document.documentElement.setAttribute('data-theme', theme);
   } catch(e) {}
 })();
@@ -348,6 +348,7 @@
       <li><a href="index.html">Accueil</a></li>
       <li><a href="series.html">Séries</a></li>
       <li><a href="marche.html">Marché</a></li>
+      <li><a href="encheres.html">Enchères</a></li>
       <li><a href="trade.html">Échanges</a></li>
       <li><a href="profil.html" class="active">Collection</a></li>
     </ul>
@@ -438,7 +439,7 @@
   <div class="container">
     <div class="footer-grid">
       <div class="footer-brand"><h4>ADI<span>TCG</span>.</h4><p>La référence française du trade Pokémon.</p></div>
-      <div class="footer-col"><h5>Explorer</h5><ul><li><a href="series.html">Séries</a></li><li><a href="marche.html">Marché</a></li></ul></div>
+      <div class="footer-col"><h5>Explorer</h5><ul><li><a href="series.html">Séries</a></li><li><a href="marche.html">Marché</a></li><li><a href="encheres.html">Enchères</a></li></ul></div>
       <div class="footer-col"><h5>Compte</h5><ul><li><a href="profil.html">Collection</a></li></ul></div>
       <div class="footer-col"><h5>Support</h5><ul><li><a href="#">FAQ</a></li></ul></div>
     </div>

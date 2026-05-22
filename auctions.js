@@ -38,13 +38,8 @@
   }
 
   // ============================================
-  // CONFIG ENCHÈRES
-  // Types : "auction" (avec fin programmée) ou "fixed" (achat immédiat)
-  // ============================================
   // Auctions répétitives à des horaires fixes (style GCC)
-  // - Weekly auction : finit chaque dimanche 17h
-  // - Premium       : finit fin de mois
-  // - Private/event : aléatoire
+  // ============================================
   function getNextSundayAt17() {
     const d = new Date();
     const day = d.getDay(); // 0=dim
@@ -65,19 +60,17 @@
   // GRADES — distribution réaliste
   // ============================================
   function pickGrade(card, seed) {
-    // 30% raw NM, 18% raw EX, 30% PSA 10, 14% PSA 9, 5% PCA 10, 3% PSA 8
     const roll = seed % 100;
     if (roll < 30) return { code: 'NM',    label: 'Near Mint',     graded: false, color: '#82a8ff' };
     if (roll < 48) return { code: 'EX',    label: 'Excellent',     graded: false, color: '#94a3b8' };
-    if (roll < 78) return { code: 'PSA10', label: 'PSA 10',        graded: true,  color: '#d97706' };
+    if (roll < 78) return { code: 'PSA10', label: 'PSA 10',        graded: true,  color: '#e8c46a' };
     if (roll < 92) return { code: 'PSA9',  label: 'PSA 9',         graded: true,  color: '#ca8a04' };
     if (roll < 97) return { code: 'PCA10', label: 'PCA 10',        graded: true,  color: '#16a34a' };
     return            { code: 'PSA8',  label: 'PSA 8',         graded: true,  color: '#6b7280' };
   }
 
   // ============================================
-  // LISTING ENRICHI pour une carte
-  // Retourne tout ce dont l'UI a besoin pour afficher un "annonce GCC"
+  // LISTING ENRICHI pour une carte (annonce style GCC)
   // ============================================
   function getListing(card) {
     if (!card || !card.id) return null;
@@ -107,19 +100,14 @@
       endsAt = getNextMonthEnd();
     }
 
-    // Nb d'enchères (pour les auctions)
     let bidCount = 0;
     let currentBid = gradedPrice;
     if (type === 'auction') {
       bidCount = ((seed >> 9) % 14) + 1;
-      // Prix de départ ~70% du prix estimé, qui monte avec les enchères
       currentBid = Math.round(gradedPrice * (0.55 + bidCount * 0.025) * 100) / 100;
     }
 
-    // Tendance prix
     const trend = ((seed >> 12) % 40) - 12;
-
-    // Lieu du vendeur
     const cities = ['Paris', 'Lyon', 'Marseille', 'Bordeaux', 'Lille', 'Nantes', 'Toulouse', 'Strasbourg'];
     const city = cities[seed % cities.length];
 
@@ -152,7 +140,6 @@
     return `${mins} min`;
   }
 
-  // Statut visuel : LIVE (< 24h) / SOON (>24h) / ENDED
   function getAuctionStatus(endsAt) {
     if (!endsAt) return 'fixed';
     const remaining = endsAt - Date.now();
@@ -161,9 +148,6 @@
     return 'soon';
   }
 
-  // ============================================
-  // INITIALES depuis un pseudo
-  // ============================================
   function sellerInitials(name) {
     const clean = (name || '').replace(/^@/, '');
     return clean.slice(0, 1).toUpperCase();

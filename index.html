@@ -6,7 +6,7 @@
 (function() {
   try {
     var saved = localStorage.getItem('aditcg_theme');
-    var theme = saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var theme = saved || 'dark';
     document.documentElement.setAttribute('data-theme', theme);
   } catch(e) {}
 })();
@@ -24,8 +24,7 @@
     position: relative;
     padding: 80px 0 100px;
     overflow: hidden;
-    background:
-      linear-gradient(180deg, var(--cream) 0%, var(--white) 100%);
+    background: linear-gradient(180deg, var(--cream) 0%, var(--white) 100%);
   }
   .hero::before {
     content: '';
@@ -135,7 +134,7 @@
     position: absolute;
     width: 240px;
     border-radius: 12px;
-    box-shadow: 0 24px 48px rgba(26, 26, 46, 0.25);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
     transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
     background: var(--gray-bg);
     aspect-ratio: 245/342;
@@ -191,12 +190,11 @@
     to { transform: translateX(-50%); }
   }
 
-  /* COLLECTIONS BLOCK - style OpenSea */
+  /* COLLECTIONS BLOCK */
   .collections-section {
     padding: 80px 0;
     background: var(--white);
   }
-
   .collections-toolbar {
     display: flex;
     justify-content: space-between;
@@ -205,13 +203,11 @@
     gap: 20px;
     margin-bottom: 32px;
   }
-
   .collections-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 20px;
   }
-
   .coll-card {
     background: var(--white);
     border: 1.5px solid var(--gray-line);
@@ -226,7 +222,6 @@
     transform: translateY(-4px);
     box-shadow: var(--shadow-lg);
   }
-
   .coll-card-banner {
     aspect-ratio: 16/9;
     background: linear-gradient(135deg, var(--blue), var(--blue-deep));
@@ -270,7 +265,6 @@
     font-weight: 700;
     z-index: 2;
   }
-
   .coll-card-body { padding: 18px; }
   .coll-card-title {
     font-family: var(--font-display);
@@ -288,7 +282,6 @@
     letter-spacing: 0.1em;
     margin-bottom: 14px;
   }
-
   .coll-card-stats {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
@@ -314,89 +307,11 @@
     margin-top: 3px;
   }
 
-  /* HOT CARDS BLOCK */
+  /* AUCTIONS / ANNONCES */
   .hot-section {
     padding: 80px 0;
     background: var(--gray-bg);
   }
-  .hot-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 20px;
-  }
-  .hot-card {
-    background: var(--white);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    border: 1.5px solid var(--gray-line);
-    transition: all 0.25s;
-    display: block;
-  }
-  .hot-card:hover {
-    border-color: var(--red);
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-lg);
-  }
-  .hot-card-img {
-    aspect-ratio: 245/342;
-    background: var(--gray-bg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    position: relative;
-  }
-  .hot-card-img img {
-    width: 100%; height: 100%;
-    object-fit: contain;
-    padding: 12px;
-  }
-  .hot-card-img .skel {
-    width: 100%; height: 100%;
-    background: linear-gradient(90deg, var(--gray-bg) 0%, var(--gray-line) 50%, var(--gray-bg) 100%);
-    background-size: 200% 100%;
-    animation: skel 1.4s ease-in-out infinite;
-  }
-  @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-
-  .hot-card-info { padding: 14px 16px 16px; }
-  .hot-card-name {
-    font-family: var(--font-display);
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--ink);
-    margin-bottom: 4px;
-    letter-spacing: -0.01em;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .hot-card-set {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    color: var(--gray-text);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-bottom: 12px;
-  }
-  .hot-card-foot {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .hot-card-price {
-    font-family: var(--font-display);
-    font-size: 18px;
-    font-weight: 800;
-    color: var(--ink);
-  }
-  .hot-card-trend {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--green);
-    font-weight: 600;
-  }
-  .hot-card-trend.down { color: var(--red); }
 
   /* FEATURES */
   .features-section {
@@ -504,6 +419,7 @@
       <li><a href="index.html" class="active">Accueil</a></li>
       <li><a href="series.html">Séries</a></li>
       <li><a href="marche.html">Marché</a></li>
+      <li><a href="encheres.html">Enchères</a></li>
       <li><a href="trade.html">Échanges</a></li>
       <li><a href="profil.html">Collection</a></li>
     </ul>
@@ -555,7 +471,6 @@
       </div>
 
       <div class="hero-cards" id="hero-cards">
-        <!-- Filled by JS with real Pokémon cards from API -->
         <div class="hero-card-img placeholder">🃏</div>
         <div class="hero-card-img placeholder">⚡</div>
         <div class="hero-card-img placeholder">🔥</div>
@@ -582,7 +497,7 @@
   </div>
 </section>
 
-<!-- COLLECTIONS (Style OpenSea) -->
+<!-- COLLECTIONS -->
 <section class="collections-section">
   <div class="container">
     <div class="collections-toolbar">
@@ -604,7 +519,7 @@
       </div>
     </div>
     <div style="text-align: center; margin-top: 40px;">
-      <a href="series.html" class="btn btn-dark btn-large">Voir toutes les 200+ séries →</a>
+      <a href="series.html" class="btn btn-dark btn-large">Voir toutes les séries →</a>
     </div>
   </div>
 </section>
@@ -622,7 +537,7 @@
 
     <!-- ROOMS : 3 types d'enchères -->
     <div class="auction-rooms" id="auction-rooms">
-      <a class="auction-room weekly" href="marche.html">
+      <a class="auction-room weekly" href="encheres.html">
         <span class="kind live">LIVE · Weekly</span>
         <h3>Weekly Auction</h3>
         <div class="desc">L'enchère hebdomadaire phare. Les meilleures pièces de la communauté française, fin chaque dimanche à 17h.</div>
@@ -633,7 +548,7 @@
         <div class="countdown-big" id="weekly-cd">—</div>
       </a>
 
-      <a class="auction-room premium" href="marche.html">
+      <a class="auction-room premium" href="encheres.html">
         <span class="kind">PREMIUM</span>
         <h3>Premium Auction</h3>
         <div class="desc">Le bloc d'enchères mensuel pour les pièces de collection les plus rares et exceptionnelles.</div>
@@ -644,7 +559,7 @@
         <div class="countdown-big" id="premium-cd">—</div>
       </a>
 
-      <a class="auction-room event" href="marche.html">
+      <a class="auction-room event" href="encheres.html">
         <span class="kind">EVENT</span>
         <h3>Vintage Showcase</h3>
         <div class="desc">Enchères thématiques WOTC, Neo et e-Card. Cartes gradées et scellées d'avant 2003.</div>
@@ -721,16 +636,16 @@
         <ul>
           <li><a href="series.html">Toutes les séries</a></li>
           <li><a href="marche.html">Marché</a></li>
-          <li><a href="#">Top ventes</a></li>
-          <li><a href="#">Nouveautés</a></li>
+          <li><a href="encheres.html">Enchères</a></li>
+          <li><a href="trade.html">Échanges</a></li>
         </ul>
       </div>
       <div class="footer-col">
         <h5>Compte</h5>
         <ul>
           <li><a href="profil.html">Ma collection</a></li>
-          <li><a href="trade.html">Mes échanges</a></li>
-          <li><a href="#">Mes favoris</a></li>
+          <li><a href="profil.html#favorites">Mes favoris</a></li>
+          <li><a href="profil.html#portfolio">Portefeuille</a></li>
         </ul>
       </div>
       <div class="footer-col">
@@ -765,16 +680,9 @@
     const heroEl = document.getElementById('hero-cards');
     if (!heroEl) return;
 
-    // Liste de candidats — on prend les 3 premiers qui répondent
     const candidates = [
-      'base1-4',     // Dracaufeu Base Set
-      'base1-2',     // Florizarre Base Set
-      'base1-15',    // Tortank Base Set
-      'neo1-9',      // Lugia Neo Genesis
-      'swsh4-44',    // Pikachu VMAX Vivid Voltage
-      'swsh7-150',   // Évoli/Noctali Evolving Skies
-      'xy12-12',     // Charizard Evolutions
-      'base1-58',    // Pikachu Base Set
+      'base1-4', 'base1-2', 'base1-15', 'neo1-9',
+      'swsh4-44', 'swsh7-150', 'xy12-12', 'base1-58',
     ];
 
     const results = await Promise.allSettled(
@@ -786,7 +694,6 @@
       .slice(0, 3);
 
     if (cards.length === 0) {
-      // Fallback : tente le 1er set le plus récent
       try {
         const sets = await window.TCGdex.getMainlineSets();
         const latest = sets[sets.length - 1];
@@ -824,10 +731,8 @@
     const el = document.getElementById('collections-grid');
     if (!el) return;
     try {
-      // Hors promos (McDo, POP…) — l'utilisateur veut voir les vraies extensions
       const sets = await window.TCGdex.getMainlineSets();
       if (!sets || sets.length === 0) throw new Error('No sets');
-      // Tri chronologique strict puis on prend les 8 plus récentes
       const sorted = [...sets].sort((a, b) =>
         (a.releaseDate || '9999').localeCompare(b.releaseDate || '9999')
       );
@@ -872,22 +777,13 @@
   }
 
   // ============================================
-  // HOT CARDS : Top 8 cartes iconiques (résilient aux 404 API)
+  // HOT CARDS : Top cartes iconiques (annonces style GCC)
   // ============================================
   async function loadHotCards() {
     const ids = [
-      'base1-4',     // Charizard Base
-      'base1-15',    // Venusaur Base
-      'neo1-9',      // Lugia Neo Genesis
-      'swsh4-44',    // Pikachu VMAX Vivid
-      'swsh7-150',   // Umbreon Evolving Skies
-      'xy12-12',     // Charizard Evolutions
-      'base1-2',     // Blastoise Base
-      'base1-58',    // Pikachu Base
-      'neo1-1',
-      'xy12-11',
-      'base1-3',
-      'base1-25',
+      'base1-4', 'base1-15', 'neo1-9', 'swsh4-44',
+      'swsh7-150', 'xy12-12', 'base1-2', 'base1-58',
+      'neo1-1', 'xy12-11', 'base1-3', 'base1-25',
     ];
     const el = document.getElementById('hot-grid');
     if (!el) return;
@@ -901,9 +797,6 @@
 
       el.innerHTML = valid.map(card => renderAuctionCard(card)).join('');
 
-      // Populate auction room stats
-      const totalLots = 1247 + (Date.now() % 200);
-      const totalBids = 8421;
       document.getElementById('weekly-count').textContent = '635';
       document.getElementById('weekly-bids').textContent = '4 280';
       document.getElementById('weekly-cd').textContent = window.Auctions.formatCountdown(getNextSundayAt17());
@@ -914,7 +807,6 @@
       document.getElementById('event-bids').textContent = '1 410';
       document.getElementById('event-cd').textContent = window.Auctions.formatCountdown(getNextSundayAt17() + 2 * 86400000);
 
-      // Auto-refresh countdowns every minute
       setInterval(() => {
         document.querySelectorAll('[data-countdown]').forEach(el => {
           const t = parseInt(el.dataset.countdown, 10);
@@ -1004,7 +896,6 @@
     return d.getTime();
   }
 
-  // Run all in parallel
   loadHeroCards();
   loadCollections();
   loadHotCards();

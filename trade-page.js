@@ -16,17 +16,15 @@
 
     function renderSlots(items, side) {
       const slots = [];
-      // existing items
       items.forEach((item, idx) => {
         const img = window.TCGdex.getCardImage(item.card, 'low', 'webp');
         slots.push(
           '<div class="slot filled" data-side="' + side + '" data-idx="' + idx + '">' +
-          '<div class="slot-remove" data-remove="' + side + ':' + idx + '">\u00d7</div>' +
+          '<div class="slot-remove" data-remove="' + side + ':' + idx + '">×</div>' +
           '<img src="' + img + '" alt="' + item.card.name + '">' +
           '</div>'
         );
       });
-      // empty slots (up to 4 total)
       const remaining = 4 - items.length;
       for (let i = 0; i < remaining; i++) {
         slots.push(
@@ -39,7 +37,6 @@
     giveContainer.innerHTML = renderSlots(composer.give, 'give');
     recvContainer.innerHTML = renderSlots(composer.receive, 'receive');
 
-    // Update totals
     const giveTotal = composer.give.reduce((s, i) => s + i.price, 0);
     const recvTotal = composer.receive.reduce((s, i) => s + i.price, 0);
     document.getElementById('give-value').textContent = window.TCGdex.formatPrice(giveTotal);
@@ -47,7 +44,7 @@
 
     const balance = recvTotal - giveTotal;
     const balEl = document.getElementById('balance');
-    balEl.textContent = (balance >= 0 ? '+' : '\u2212') + window.TCGdex.formatPrice(Math.abs(balance));
+    balEl.textContent = (balance >= 0 ? '+' : '−') + window.TCGdex.formatPrice(Math.abs(balance));
     balEl.className = 'v ' + (balance >= 0 ? '' : 'neg');
   }
 
@@ -57,7 +54,7 @@
   async function loadInitialCards() {
     const initialIds = {
       give: ['base1-4', 'swsh4-44'],
-      receive: ['sv03.5-9'],
+      receive: ['sv03.5-006'],
     };
     for (const side of ['give', 'receive']) {
       for (const id of initialIds[side]) {
@@ -82,7 +79,7 @@
 
     window.UI.openModal(
       '<div class="modal" style="max-width: 700px;">' +
-      '<div class="modal-close">\u00d7</div>' +
+      '<div class="modal-close">×</div>' +
       '<div class="modal-header">' +
       '<div class="pokeball-mini"></div>' +
       '<h2>Ajouter une <span class="accent">carte</span></h2>' +
@@ -148,7 +145,6 @@
           '</div>';
       }).join('');
 
-      // Add hover and click
       results.querySelectorAll('.picker-card').forEach(el => {
         el.addEventListener('mouseenter', () => { el.style.borderColor = 'var(--red)'; el.style.transform = 'translateY(-2px)'; });
         el.addEventListener('mouseleave', () => { el.style.borderColor = 'var(--gray-line)'; el.style.transform = ''; });
@@ -232,14 +228,13 @@
     });
     if (!ok) return;
 
-    const trade = window.Storage.createTrade({
+    window.Storage.createTrade({
       give: composer.give.map(i => i.id),
       receive: composer.receive.map(i => i.id),
       partner: 'Communauté',
     });
     window.UI.toast('Échange proposé ! Vous serez notifié de la réponse.', 'success', 4500);
 
-    // Refresh history
     setTimeout(() => location.reload(), 1200);
   });
 
@@ -255,9 +250,9 @@
   // PUBLIC TRADE FEED
   // ============================================
   const publicTrades = [
-    { who: 'M', name: '@marie_dresseuse', meta: '\u2b50 4.8 \u00b7 32 \u00e9changes', give: ['base1-4'], receive: ['sv03.5-9', 'sv03.5-25'], time: '12 min' },
-    { who: 'T', name: '@thomas_94', meta: '\u2b50 4.9 \u00b7 78 \u00e9changes', give: ['neo1-9'], receive: ['swsh7-150'], time: '1h' },
-    { who: 'L', name: '@lucas_collector', meta: '\u2b50 5.0 \u00b7 142 \u00e9changes', give: ['xy12-12', 'xy12-25'], receive: ['base1-15'], time: '3h' },
+    { who: 'M', name: '@marie_dresseuse', meta: '⭐ 4.8 · 32 échanges', give: ['base1-4'], receive: ['sv03.5-006', 'sv03.5-025'], time: '12 min' },
+    { who: 'T', name: '@thomas_94', meta: '⭐ 4.9 · 78 échanges', give: ['neo1-9'], receive: ['swsh7-150'], time: '1h' },
+    { who: 'L', name: '@lucas_collector', meta: '⭐ 5.0 · 142 échanges', give: ['xy12-12', 'xy12-25'], receive: ['base1-15'], time: '3h' },
   ];
 
   async function renderTradeFeed() {
@@ -288,7 +283,7 @@
           '</div>' +
           '<div class="trade-cards-row">' +
           '<div class="mini-cards">' + t.give.map(renderMini).join('') + '</div>' +
-          '<div class="vs-divider">\u21cc</div>' +
+          '<div class="vs-divider">⇌</div>' +
           '<div class="mini-cards">' + t.receive.map(renderMini).join('') + '</div>' +
           '</div>' +
           '<div class="trade-action">' +
@@ -298,7 +293,6 @@
           '</div>';
       }).join('');
 
-      // Respond handlers
       feed.querySelectorAll('[data-respond]').forEach(btn => {
         btn.addEventListener('click', async () => {
           if (!window.Auth.isLoggedIn()) {
@@ -313,13 +307,11 @@
             confirmText: 'Accepter',
           });
           if (ok) {
-            // Demo : we virtually give our cards (receive[]) and gain (give[])
             window.Storage.createTrade({
               give: trade.give,
               receive: trade.receive,
               partner: trade.name,
             });
-            // Add the received cards to collection
             trade.give.forEach(id => window.Storage.addToCollection(id));
             window.UI.toast('Échange accepté ! Nouvelles cartes ajoutées à votre collection.', 'success', 4500);
             btn.outerHTML = '<span class="status-pill done">Accepté</span>';
@@ -328,7 +320,7 @@
       });
     } catch (e) {
       console.error(e);
-      feed.innerHTML = '<div class="empty-state"><div class="emoji">\u26a0\ufe0f</div><h3>Erreur</h3></div>';
+      feed.innerHTML = '<div class="empty-state"><div class="emoji">⚠️</div><h3>Erreur</h3></div>';
     }
   }
 
@@ -367,7 +359,7 @@
     table.innerHTML = head + trades.slice().reverse().map(t => {
       return '<div class="history-row">' +
         '<div>' + (statusPills[t.status] || statusPills.pending) + '</div>' +
-        '<div>' + t.give.length + ' cartes \u21cc ' + t.receive.length + ' cartes</div>' +
+        '<div>' + t.give.length + ' cartes ⇌ ' + t.receive.length + ' cartes</div>' +
         '<div>' + t.partner + '</div>' +
         '<div style="color:var(--gray-text); font-weight:600;">—</div>' +
         '<div style="color:var(--gray-text); font-size:12px;">' + timeAgo(t.createdAt) + '</div>' +

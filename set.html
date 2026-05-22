@@ -2,11 +2,10 @@
 <html lang="fr">
 <head>
 <script>
-// Anti-FOUC: apply theme before paint
 (function() {
   try {
     var saved = localStorage.getItem('aditcg_theme');
-    var theme = saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var theme = saved || 'dark';
     document.documentElement.setAttribute('data-theme', theme);
   } catch(e) {}
 })();
@@ -19,10 +18,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,700;0,9..144,800;0,9..144,900;1,9..144,300&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <style>
-  /* HERO */
   .set-hero {
-    background:
-      linear-gradient(135deg, var(--blue), var(--blue-deep));
+    background: linear-gradient(135deg, var(--blue), var(--blue-deep));
     color: var(--white);
     padding: 50px 0 60px;
     position: relative;
@@ -119,7 +116,6 @@
     margin-top: 6px;
   }
 
-  /* COMPLETION CARD */
   .completion {
     background: var(--white);
     border: 1.5px solid var(--gray-line);
@@ -171,7 +167,6 @@
   .completion-meta strong { color: var(--ink); }
   .completion-actions { display: flex; gap: 10px; }
 
-  /* CARDS TOOLBAR */
   .cards-toolbar {
     display: flex;
     justify-content: space-between;
@@ -187,7 +182,6 @@
   }
   .toolbar-count strong { color: var(--red); font-size: 16px; font-family: var(--font-display); }
 
-  /* POKEMON CARDS GRID */
   .pokemon-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -231,22 +225,6 @@
   }
   @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-  .pkmn-card-owned-badge {
-    position: absolute;
-    top: 8px; right: 8px;
-    width: 22px; height: 22px;
-    border-radius: 50%;
-    background: var(--green);
-    color: var(--white);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 13px;
-    font-weight: 700;
-    z-index: 2;
-    box-shadow: var(--shadow);
-  }
-
   .pkmn-card-info { padding: 12px 14px 14px; }
   .pkmn-card-name {
     font-family: var(--font-display);
@@ -280,13 +258,6 @@
     font-weight: 800;
     color: var(--ink);
   }
-  .pkmn-card-rarity {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    color: var(--gray-text);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-  }
 
   .pkmn-card.not-owned { opacity: 0.55; }
   .pkmn-card.not-owned .pkmn-card-img img { filter: grayscale(1) brightness(0.6); }
@@ -312,6 +283,7 @@
       <li><a href="index.html">Accueil</a></li>
       <li><a href="series.html" class="active">Séries</a></li>
       <li><a href="marche.html">Marché</a></li>
+      <li><a href="encheres.html">Enchères</a></li>
       <li><a href="trade.html">Échanges</a></li>
       <li><a href="profil.html">Collection</a></li>
     </ul>
@@ -383,9 +355,9 @@
     <div class="footer-grid">
       <div class="footer-brand">
         <h4>ADI<span>TCG</span>.</h4>
-        <p>La référence française du trade Pokémon. Données via l'API TCGdex.</p>
+        <p>La référence française du trade de cartes Pokémon. Données via l'API TCGdex.</p>
       </div>
-      <div class="footer-col"><h5>Explorer</h5><ul><li><a href="series.html">Séries</a></li><li><a href="marche.html">Marché</a></li></ul></div>
+      <div class="footer-col"><h5>Explorer</h5><ul><li><a href="series.html">Séries</a></li><li><a href="marche.html">Marché</a></li><li><a href="encheres.html">Enchères</a></li></ul></div>
       <div class="footer-col"><h5>Compte</h5><ul><li><a href="profil.html">Collection</a></li><li><a href="trade.html">Échanges</a></li></ul></div>
       <div class="footer-col"><h5>Support</h5><ul><li><a href="#">FAQ</a></li><li><a href="#">Contact</a></li></ul></div>
     </div>
@@ -426,7 +398,6 @@
     const year = (set.releaseDate || '').slice(0, 4) || '—';
     const logo = window.TCGdex.getSetLogo(set, 'webp');
 
-    // Calcul des VRAIS prix du set (floor, total) basé sur Cardmarket
     const cardsList = set.cards || [];
     let floor = null, top = null, totalValue = 0, pricedCount = 0, realCount = 0;
     cardsList.forEach(c => {
@@ -441,15 +412,12 @@
     });
     const realCoverage = pricedCount > 0 ? Math.round((realCount / pricedCount) * 100) : 0;
 
-    // Pseudo-random "owned" 60% of cards
-    // Use real Storage data
     const realCollection = window.Storage.getCollection();
     cardsList.forEach(c => {
       if (realCollection.includes(c.id)) ownedSet.add(c.id);
     });
     const ownedCount = ownedSet.size;
 
-    // HERO
     document.getElementById('set-hero-grid').innerHTML = `
       <div class="set-hero-cover">
         ${logo
@@ -478,7 +446,6 @@
       </div>
     `;
 
-    // COMPLETION
     let ownedValue = 0, missingValue = 0;
     cardsList.forEach((c) => {
       const p = window.TCGdex.getRealPrice(c)?.price || 0;
@@ -503,10 +470,12 @@
       </div>
     `;
 
-    // ALL CARDS
     allCards = cardsList;
     document.getElementById('cards-count').innerHTML = `<strong>${cardsList.length}</strong> cartes · <span style="color: var(--green);">${ownedCount} possédées</span>`;
     renderCards();
+
+    // Mise à niveau : vrais prix Cardmarket en arrière-plan
+    upgradeSetPricing();
 
   } catch (e) {
     console.error(e);
@@ -547,7 +516,7 @@
             <div class="pkmn-card-info">
               <div class="pkmn-card-name">${c.name}</div>
               <div class="pkmn-card-meta">
-                <span>${c.localId || '?'}/${c.localId ? allCards.length : '?'}</span>
+                <span>#${c.localId || '?'}</span>
                 <span>${(c.rarity || '').substring(0, 12)}</span>
               </div>
               <div class="pkmn-card-foot">
@@ -557,6 +526,37 @@
           </a>
         </div>`;
     }).join('');
+  }
+
+  // Charge le détail de chaque carte pour les vrais prix Cardmarket
+  async function upgradeSetPricing() {
+    if (!allCards.length) return;
+    const details = await Promise.all(
+      allCards.map(c => window.TCGdex.getCardDetail(c.id).catch(() => null))
+    );
+    let changed = false;
+    details.forEach((d, i) => {
+      if (d && d.pricing && allCards[i]) {
+        allCards[i].pricing = d.pricing;
+        allCards[i].rarity = d.rarity || allCards[i].rarity;
+        changed = true;
+      }
+    });
+    if (!changed) return;
+    renderCards();
+    let floor = null, top = null, totalValue = 0;
+    allCards.forEach(c => {
+      const pr = window.TCGdex.getRealPrice(c);
+      if (pr && pr.price > 0) {
+        totalValue += pr.price;
+        if (floor === null || pr.price < floor) floor = pr.price;
+        if (top === null || pr.price > top) top = pr.price;
+      }
+    });
+    const stats = document.querySelectorAll('.set-hero-stats .shs-item .v');
+    if (stats[0] && floor !== null) stats[0].textContent = window.TCGdex.formatPrice(floor);
+    if (stats[2] && totalValue > 0) stats[2].textContent = window.TCGdex.formatPrice(totalValue);
+    if (stats[3] && top !== null) stats[3].textContent = window.TCGdex.formatPrice(top);
   }
 
   // Delegated handlers for owned/favorite toggles
@@ -581,12 +581,10 @@
       const now = window.Storage.toggleOwned(id);
       ownedBtn.classList.toggle('active', now);
       ownedBtn.innerHTML = now ? '✓ POSSÉDÉE' : '+ AJOUTER';
-      // Update card grayscale
       const card = ownedBtn.closest('.pkmn-card');
       if (card) card.classList.toggle('not-owned', !now);
       if (now) ownedSet.add(id); else ownedSet.delete(id);
       window.UI.toast(now ? 'Carte ajoutée à votre collection !' : 'Carte retirée de votre collection', now ? 'success' : 'info');
-      // Update completion bar
       updateCompletionBar();
       return;
     }

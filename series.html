@@ -2,11 +2,10 @@
 <html lang="fr">
 <head>
 <script>
-// Anti-FOUC: apply theme before paint
 (function() {
   try {
     var saved = localStorage.getItem('aditcg_theme');
-    var theme = saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var theme = saved || 'dark';
     document.documentElement.setAttribute('data-theme', theme);
   } catch(e) {}
 })();
@@ -57,10 +56,7 @@
     padding: 24px 0 12px;
   }
 
-  /* SERIES BLOCK */
-  .serie-block {
-    margin-bottom: 50px;
-  }
+  .serie-block { margin-bottom: 50px; }
   .serie-block-head {
     display: flex;
     justify-content: space-between;
@@ -87,7 +83,6 @@
   }
   .serie-block-meta strong { color: var(--ink); }
 
-  /* COLLECTIONS GRID - identique à index */
   .collections-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -118,7 +113,6 @@
     justify-content: center;
     background: linear-gradient(135deg, var(--blue), var(--blue-deep));
   }
-  /* alterne les couleurs */
   .coll-card:nth-child(3n) .coll-card-banner { background: linear-gradient(135deg, var(--red), var(--red-deep)); }
   .coll-card:nth-child(3n+1) .coll-card-banner { background: linear-gradient(135deg, var(--blue), var(--blue-deep)); }
   .coll-card:nth-child(3n+2) .coll-card-banner { background: linear-gradient(135deg, #16a34a, #166534); }
@@ -166,7 +160,6 @@
     filter: drop-shadow(0 6px 12px rgba(0,0,0,0.3));
   }
 
-  /* LIST VIEW */
   .collections-list {
     display: flex;
     flex-direction: column;
@@ -187,7 +180,7 @@
   .set-row:hover {
     border-color: var(--red);
     transform: translateX(4px);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow);
   }
   .set-row-logo {
     width: 70px; height: 56px;
@@ -289,6 +282,7 @@
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
+    color: var(--ink);
   }
 
   .view-toggle {
@@ -314,7 +308,6 @@
     box-shadow: var(--shadow-sm);
   }
 
-  /* Stats banner */
   .global-stats {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -328,7 +321,6 @@
 </head>
 <body>
 
-<!-- NAVBAR -->
 <nav class="topbar">
   <div class="nav-inner">
     <a href="index.html" class="logo">
@@ -339,6 +331,7 @@
       <li><a href="index.html">Accueil</a></li>
       <li><a href="series.html" class="active">Séries</a></li>
       <li><a href="marche.html">Marché</a></li>
+      <li><a href="encheres.html">Enchères</a></li>
       <li><a href="trade.html">Échanges</a></li>
       <li><a href="profil.html">Collection</a></li>
     </ul>
@@ -353,7 +346,6 @@
   </div>
 </nav>
 
-<!-- PAGE HEAD -->
 <section class="page-head">
   <div class="container">
     <div class="breadcrumb">
@@ -363,16 +355,14 @@
     </div>
     <h1 class="display-1">Toutes les <span class="italic-blue">séries</span> Pokémon</h1>
     <p style="color: var(--gray-text); max-width: 640px; margin-top: 16px; font-size: 17px;">
-      L'intégralité des extensions du TCG Pokémon, de Base Set (1999) aux dernières sorties Scarlet & Violet. Données et images officielles via l'API TCGdex.
+      L'intégralité des extensions du TCG Pokémon, de Base Set (1999) aux dernières sorties. Données et images officielles via l'API TCGdex.
     </p>
   </div>
 </section>
 
-<!-- CONTENT -->
 <section style="padding: 40px 0 60px;">
   <div class="container">
 
-    <!-- GLOBAL STATS -->
     <div class="global-stats">
       <div class="stat-card">
         <div class="stat-label">Séries totales</div>
@@ -394,7 +384,6 @@
       </div>
     </div>
 
-    <!-- TOOLBAR -->
     <div class="page-toolbar">
       <div class="filter-bar">
         <button class="filter-chip active" data-filter="all">Toutes</button>
@@ -417,7 +406,6 @@
       </div>
     </div>
 
-    <!-- SERIES BLOCKS -->
     <div id="series-container">
       <div class="loading-state">
         <div class="pokeball-loader"></div>
@@ -428,7 +416,6 @@
   </div>
 </section>
 
-<!-- FOOTER -->
 <footer>
   <div class="container">
     <div class="footer-grid">
@@ -436,7 +423,7 @@
         <h4>ADI<span>TCG</span>.</h4>
         <p>La référence française du trade de cartes Pokémon. Données via l'API TCGdex.</p>
       </div>
-      <div class="footer-col"><h5>Explorer</h5><ul><li><a href="series.html">Séries</a></li><li><a href="marche.html">Marché</a></li></ul></div>
+      <div class="footer-col"><h5>Explorer</h5><ul><li><a href="series.html">Séries</a></li><li><a href="marche.html">Marché</a></li><li><a href="encheres.html">Enchères</a></li></ul></div>
       <div class="footer-col"><h5>Compte</h5><ul><li><a href="profil.html">Collection</a></li><li><a href="trade.html">Échanges</a></li></ul></div>
       <div class="footer-col"><h5>Support</h5><ul><li><a href="#">FAQ</a></li><li><a href="#">Contact</a></li></ul></div>
     </div>
@@ -488,16 +475,36 @@
       </a>`;
   }
 
+  function renderSetRow(set) {
+    const logo = window.TCGdex.getSetLogo(set);
+    const year = (set.releaseDate || '????').slice(0, 4);
+    const total = set.cardCount?.total || 0;
+    const floor = Math.round(window.TCGdex.estimateSetFloor(set));
+    return `
+      <a href="set.html?id=${set.id}" class="set-row">
+        <div class="set-row-logo">
+          ${logo
+            ? `<img src="${logo}" alt="${set.name}" onerror="this.outerHTML='<div class=&quot;ph&quot;>🃏</div>'">`
+            : `<div class="ph">🃏</div>`}
+        </div>
+        <div class="set-row-info">
+          <div class="set-row-title">${set.name}</div>
+          <div class="set-row-sub">${set.serie?.name || 'Série'} · ${set.id}</div>
+        </div>
+        <div class="set-row-stat"><div class="v">${year}</div><div class="l">Année</div></div>
+        <div class="set-row-stat"><div class="v">${total}</div><div class="l">Cartes</div></div>
+        <div class="set-row-stat"><div class="v">${window.TCGdex.formatPrice(floor)}</div><div class="l">Floor</div></div>
+      </a>`;
+  }
+
   function applyFilter(sets) {
     if (activeFilter === 'all') return sets;
     if (activeFilter === 'recent') return sets.filter(s => ((s.releaseDate || '').slice(0,4)) >= '2022');
     if (activeFilter === 'wotc') {
-      // WOTC era: base, jungle, fossil, team rocket, gym, neo (1999-2003)
-      const wotcSeries = ['base', 'neo', 'ecard'];
+      const wotcSeries = ['base', 'gym', 'neo', 'ecard'];
       return sets.filter(s => wotcSeries.includes(s.serie?.id) || (s.releaseDate || '') < '2003-08-00');
     }
     if (activeFilter === 'popular') {
-      // Sets with 150+ cards OR popular series like Evolving Skies, Crown Zenith, etc
       const popularIds = ['swsh7', 'swsh12.5', 'sv03.5', 'sv08.5', 'swsh4'];
       return sets.filter(s => (s.cardCount?.total || 0) >= 150 || popularIds.includes(s.id));
     }
@@ -528,12 +535,11 @@
     const filtered = applyFilter(allSets);
     const sorted = applySort(filtered);
 
-    // Groupe par série
     const grouped = {};
     sorted.forEach(set => {
       const key = set.serie?.id || 'autres';
       const name = set.serie?.name || 'Autres';
-      if (!grouped[key]) grouped[key] = { name, sets: [] };
+      if (!grouped[key]) grouped[key] = { id: key, name, sets: [] };
       grouped[key].sets.push(set);
     });
 
@@ -542,15 +548,23 @@
       return;
     }
 
-    // Ordre chronologique des séries : Base Set (1999) → … → dernières sorties.
-    // Chaque groupe est positionné par la date de sortie de son set le plus ancien.
-    const groups = Object.values(grouped);
+    // Ordre chronologique des séries ; McDonald's (promos) toujours en dernier
     const earliest = grp => grp.sets.reduce((min, s) => {
       const t = Date.parse(s.releaseDate || '') || Infinity;
       return t < min ? t : min;
     }, Infinity);
-    groups.sort((a, b) => earliest(a) - earliest(b));
-    if (activeSort === 'date-desc') groups.reverse();
+    const isPromo = id => window.TCGdex.isPromoSerie(id);
+    const promoGroups = Object.values(grouped).filter(g => isPromo(g.id));
+    const mainGroups = Object.values(grouped).filter(g => !isPromo(g.id));
+    // McDonald's toujours en tout dernier
+    promoGroups.sort((a, b) => {
+      const am = /^mc$|mcd|mcdonald/i.test(a.id), bm = /^mc$|mcd|mcdonald/i.test(b.id);
+      if (am !== bm) return am ? 1 : -1;
+      return earliest(a) - earliest(b);
+    });
+    mainGroups.sort((a, b) => earliest(a) - earliest(b));
+    if (activeSort === 'date-desc') mainGroups.reverse();
+    const groups = [...mainGroups, ...promoGroups];
 
     container.innerHTML = groups.map(grp => {
       const totalCards = grp.sets.reduce((s, x) => s + (x.cardCount?.total || 0), 0);
@@ -571,33 +585,11 @@
     }).join('');
   }
 
-  function renderSetRow(set) {
-    const logo = window.TCGdex.getSetLogo(set);
-    const year = (set.releaseDate || '????').slice(0, 4);
-    const total = set.cardCount?.total || 0;
-    const floor = Math.round(window.TCGdex.estimateSetFloor(set));
-    return `
-      <a href="set.html?id=${set.id}" class="set-row">
-        <div class="set-row-logo">
-          ${logo
-            ? `<img src="${logo}" alt="${set.name}" onerror="this.outerHTML='<div class=&quot;ph&quot;>🃏</div>'">`
-            : `<div class="ph">🃏</div>`}
-        </div>
-        <div class="set-row-info">
-          <div class="set-row-title">${set.name}</div>
-          <div class="set-row-sub">${set.serie?.name || 'Série'} · ${set.id}</div>
-        </div>
-        <div class="set-row-stat"><div class="v">${year}</div><div class="l">Année</div></div>
-        <div class="set-row-stat"><div class="v">${total}</div><div class="l">Cartes</div></div>
-        <div class="set-row-stat"><div class="v">${window.TCGdex.formatPrice(floor)}</div><div class="l">Floor</div></div>
-      </a>`;
-  }
-
   try {
-    // Séries enrichies. On ne garde QUE les séries physiques officielles
-    // (boosters/blisters en boutique réelle) — pas TCG Pocket ni POP/promos
+    // Séries enrichies (avec serie + releaseDate sur chaque set), triées chrono.
+    // TCG Pocket est exclu ; McDonald's reste mais en fin de liste.
     const series = await window.TCGdex.getAllSeries();
-    allSets = series.filter(s => s.isMainline).flatMap(s => s.sets);
+    allSets = series.flatMap(s => s.sets);
     if (allSets.length === 0) throw new Error('Aucune série récupérée');
     document.getElementById('stat-sets').textContent = allSets.length;
     const totalCards = allSets.reduce((s, x) => s + (x.cardCount?.total || 0), 0);

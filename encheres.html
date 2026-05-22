@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<script>
+(function() {
+  try {
+    var saved = localStorage.getItem('aditcg_theme');
+    var theme = saved || 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+  } catch(e) {}
+})();
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enchères — ADITCG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,700;0,9..144,800;0,9..144,900;1,9..144,300&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+  /* Badge de grade PSA (lot) */
+  .grade-badge {
+    padding: 3px 9px;
+    border-radius: var(--radius-pill);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+  .grade-badge.grade-gem {
+    background: linear-gradient(135deg, #f3d178, var(--gold));
+    color: #2a2008;
+    box-shadow: 0 2px 8px rgba(232, 196, 106, 0.4);
+  }
+  .grade-badge.grade-mint { background: var(--blue); color: #fff; }
+  .grade-badge.grade-nm { background: var(--green); color: #fff; }
+  .grade-badge.grade-raw {
+    background: rgba(0, 0, 0, 0.55);
+    color: #e8e8f0;
+    backdrop-filter: blur(4px);
+  }
+
+  .page-head {
+    padding: 50px 0 30px;
+    background: linear-gradient(180deg, var(--white), var(--cream));
+    border-bottom: 1px solid var(--gray-line);
+    position: relative;
+    overflow: hidden;
+  }
+  .page-head::before {
+    content: '';
+    position: absolute;
+    top: -120px; right: -50px;
+    width: 300px; height: 300px;
+    border-radius: 50%;
+    background: var(--gold);
+    opacity: 0.06;
+  }
+  .breadcrumb {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--gray-text);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 16px;
+  }
+  .breadcrumb a:hover { color: var(--blue); }
+  .breadcrumb .sep { margin: 0 8px; opacity: 0.5; }
+
+  .auction-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin: 32px 0 24px;
+  }
+
+  /* LOT GRID */
+  .lots-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 22px;
+  }
+  .lot-card {
+    background: var(--white);
+    border: 1px solid var(--gray-line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: all 0.25s;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .lot-card:hover { border-color: var(--gold); transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+  .lot-card.ended { opacity: 0.6; }
+
+  .lot-img {
+    aspect-ratio: 245/342;
+    background: var(--gray-bg);
+    display: flex; align-items: center; justify-content: center;
+    padding: 18px;
+    position: relative;
+  }
+  .lot-img img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 8px 18px rgba(0,0,0,0.4)); }
+  .lot-img .skel {
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, var(--gray-bg) 0%, var(--gray-line) 50%, var(--gray-bg) 100%);
+    background-size: 200% 100%;
+    animation: skel 1.4s infinite;
+    border-radius: var(--radius);
+  }
+  @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  .lot-status {
+    position: absolute;
+    top: 10px; left: 10px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    z-index: 3;
+  }
+  .lot-status.live { background: var(--red); color: #fff; }
+  .lot-status.soon { background: var(--gold); color: #2a2008; }
+  .lot-status.open { background: rgba(0,0,0,0.55); color: #e8e8f0; backdrop-filter: blur(4px); }
+  .lot-status.ended { background: var(--gray-text-2); color: #fff; }
+  .lot-status .pulse {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: pulse 1.1s infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+  .lot-grade {
+    position: absolute;
+    top: 10px; right: 10px;
+    z-index: 3;
+  }
+
+  .lot-body { padding: 16px 18px 18px; display: flex; flex-direction: column; flex: 1; }
+  .lot-name {
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .lot-sub {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--gray-text);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin: 3px 0 14px;
+  }
+  .lot-bid-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 14px 0;
+    border-top: 1px solid var(--gray-line);
+    border-bottom: 1px solid var(--gray-line);
+    margin-bottom: 14px;
+  }
+  .lot-bid-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--gray-text);
+    margin-bottom: 4px;
+  }
+  .lot-bid {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 900;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .lot-countdown {
+    text-align: right;
+  }
+  .lot-timer {
+    font-family: var(--font-mono);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .lot-timer.urgent { color: var(--red); }
+  .lot-mybid {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--green);
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+  .lot-card .btn { width: 100%; margin-top: auto; }
+
+  /* MY BIDS */
+  .mybids-section { margin-top: 56px; }
+  .mybids-table {
+    background: var(--white);
+    border: 1px solid var(--gray-line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .mybid-row {
+    display: grid;
+    grid-template-columns: 48px 1fr auto auto auto;
+    gap: 16px;
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--gray-line);
+    align-items: center;
+    font-size: 14px;
+  }
+  .mybid-row:last-child { border-bottom: none; }
+  .mybid-row.head {
+    background: var(--gray-bg);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--gray-text);
+  }
+  .mybid-row img { width: 40px; height: 54px; object-fit: contain; background: var(--gray-bg); border-radius: 5px; }
+  .mybid-status {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: var(--radius-pill);
+    text-transform: uppercase;
+  }
+  .mybid-status.winning { background: var(--green); color: #fff; }
+  .mybid-status.outbid { background: var(--red); color: #fff; }
+  .mybid-status.ended { background: var(--gray-text-2); color: #fff; }
+
+  @media (max-width: 700px) {
+    .mybid-row { grid-template-columns: 40px 1fr auto; }
+    .mybid-row .col-hide { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="nav-inner">
+    <a href="index.html" class="logo">
+      <span class="logo-pokeball"></span>
+      ADI<span class="tcg-tag">TCG</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Accueil</a></li>
+      <li><a href="series.html">Séries</a></li>
+      <li><a href="marche.html">Marché</a></li>
+      <li><a href="encheres.html" class="active">Enchères</a></li>
+      <li><a href="trade.html">Échanges</a></li>
+      <li><a href="profil.html">Collection</a></li>
+    </ul>
+    <div class="nav-search">
+      <span class="nav-search-icon">⌕</span>
+      <input type="text" placeholder="Rechercher…">
+    </div>
+    <div class="nav-cta">
+      <button class="btn btn-ghost btn-small">Connexion</button>
+      <button class="btn btn-primary btn-small">S'inscrire</button>
+    </div>
+  </div>
+</nav>
+
+<section class="page-head">
+  <div class="container">
+    <div class="breadcrumb">
+      <a href="index.html">Accueil</a>
+      <span class="sep">/</span>
+      <span style="color: var(--ink);">Enchères</span>
+    </div>
+    <h1 class="display-1">Salle des <span class="italic-accent">enchères</span></h1>
+    <p style="color: var(--gray-text); max-width: 640px; margin-top: 16px; font-size: 17px;">
+      Cartes Pokémon rares et gradées PSA, vendues aux enchères. Placez votre offre avant la fin du compte à rebours.
+    </p>
+  </div>
+</section>
+
+<section style="padding: 0 0 60px;">
+  <div class="container">
+
+    <div class="auction-toolbar">
+      <div>
+        <div class="eyebrow">★ Lots en cours</div>
+        <h2 class="display-2" style="margin-top: 14px;">Enchères <span class="italic-blue">en direct</span></h2>
+      </div>
+      <div class="filter-bar" id="auction-filter">
+        <button class="filter-chip active" data-filter="all">Tous</button>
+        <button class="filter-chip" data-filter="live">Bientôt terminés</button>
+        <button class="filter-chip" data-filter="graded">Gradés PSA</button>
+      </div>
+    </div>
+
+    <div class="lots-grid" id="lots-grid">
+      <div class="loading-state" style="grid-column: 1/-1;">
+        <div class="pokeball-loader"></div>
+        Chargement des lots…
+      </div>
+    </div>
+
+    <div class="mybids-section">
+      <h2 class="display-2" style="margin-bottom: 8px;">Mes <span class="italic-accent">enchères</span></h2>
+      <p style="color: var(--gray-text); margin-bottom: 20px; font-size: 15px;">Suivez vos offres en cours.</p>
+      <div class="mybids-table" id="mybids-table">
+        <div class="mybid-row head">
+          <div></div>
+          <div>Carte</div>
+          <div class="col-hide">Votre offre</div>
+          <div>Offre actuelle</div>
+          <div>Statut</div>
+        </div>
+        <div style="padding: 28px; text-align: center; color: var(--gray-text); font-size: 14px;" id="mybids-empty">
+          Vous n'avez pas encore enchéri. Placez votre première offre ci-dessus !
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand"><h4>ADI<span>TCG</span>.</h4><p>La référence française du trade de cartes Pokémon.</p></div>
+      <div class="footer-col"><h5>Explorer</h5><ul><li><a href="series.html">Séries</a></li><li><a href="marche.html">Marché</a></li><li><a href="encheres.html">Enchères</a></li></ul></div>
+      <div class="footer-col"><h5>Compte</h5><ul><li><a href="profil.html">Collection</a></li><li><a href="trade.html">Échanges</a></li></ul></div>
+      <div class="footer-col"><h5>Support</h5><ul><li><a href="#">FAQ</a></li></ul></div>
+    </div>
+    <div class="footer-bottom"><div>© 2026 ADITCG · Pokémon™ Nintendo / Game Freak</div><div>Données : TCGdex</div></div>
+  </div>
+</footer>
+
+<script src="auth.js"></script>
+<script src="storage.js"></script>
+<script src="tcgdex-api.js"></script>
+<script src="ui.js"></script>
+<script src="app.js"></script>
+<script src="encheres-page.js"></script>
+</body>
+</html>

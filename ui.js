@@ -1,5 +1,5 @@
 // ============================================
-// UI.JS — Modals, toasts, composants UI partagés
+// UI.JS — Modals, toasts, panier, composants UI partagés
 // ============================================
 
 (() => {
@@ -120,7 +120,7 @@
       padding: 12px 16px;
       border: 1.5px solid var(--gray-line);
       border-radius: var(--radius);
-      background: var(--surface, var(--white));
+      background: var(--white);
       color: var(--ink);
       font-size: 15px;
       font-family: var(--font-body);
@@ -279,6 +279,7 @@
     .toast.success { border-left-color: var(--green); }
     .toast.error { border-left-color: var(--red); }
     .toast.warning { border-left-color: var(--yellow); }
+    [data-theme="dark"] .toast { background: var(--gray-bg); }
     .toast .icon {
       width: 28px; height: 28px;
       flex-shrink: 0;
@@ -318,8 +319,8 @@
     .fav-toggle:not(.active)::before { content: '♡'; }
 
     [data-theme="dark"] .fav-toggle {
-      background: rgba(30, 30, 50, 0.95);
-      color: #d4d6e5;
+      background: rgba(20, 20, 30, 0.95);
+      color: #cbcbd8;
     }
     [data-theme="dark"] .fav-toggle.active { color: var(--red); }
 
@@ -347,8 +348,8 @@
       color: #fff;
     }
     [data-theme="dark"] .owned-toggle {
-      background: rgba(30, 30, 50, 0.95);
-      color: #d4d6e5;
+      background: rgba(20, 20, 30, 0.95);
+      color: #cbcbd8;
     }
     [data-theme="dark"] .owned-toggle.active {
       background: var(--green);
@@ -378,10 +379,8 @@
     overlay.innerHTML = html;
     document.body.appendChild(overlay);
 
-    // Force layout for animation
     requestAnimationFrame(() => overlay.classList.add('open'));
 
-    // Close handlers
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay || e.target.closest('.modal-close')) {
         closeModal();
@@ -409,7 +408,7 @@
   // ============================================
 
   function openLogin() {
-    const overlay = openModal(`
+    openModal(`
       <div class="modal">
         <div class="modal-close">×</div>
         <div class="modal-header">
@@ -587,6 +586,79 @@
   }
 
   // ============================================
+  // PANIER (cart)
+  // ============================================
+
+  function fmtPrice(v) {
+    return window.TCGdex ? window.TCGdex.formatPrice(v) : (Math.round(v * 100) / 100) + ' €';
+  }
+
+  function updateCartBadge() {
+    const badge = document.querySelector('#nav-cart-btn .nav-icon-badge');
+    if (!badge) return;
+    const c = window.Storage.cartCount();
+    badge.textContent = c;
+    badge.classList.toggle('hidden', c === 0);
+  }
+
+  function openCart() {
+    const cart = window.Storage.getCart();
+    const total = window.Storage.cartTotal();
+    let body;
+    if (cart.length === 0) {
+      body = '<div class="cart-empty"><div class="emoji">🛒</div><h3 style="font-family:var(--font-display);color:var(--ink);margin-bottom:6px;">Votre panier est vide</h3><p>Ajoutez des cartes depuis le marché.</p></div>';
+    } else {
+      body = cart.map(it => `
+        <div class="cart-item" data-cart-id="${it.cardId}">
+          <img class="cart-item-img" src="${it.image || ''}" alt="" onerror="this.style.visibility='hidden'">
+          <div>
+            <div class="cart-item-name">${it.name}</div>
+            ${it.grade ? `<div class="cart-item-grade">${it.grade}</div>` : ''}
+          </div>
+          <div class="cart-item-price">${fmtPrice(it.price)}</div>
+          <div class="cart-item-remove" data-remove-cart="${it.cardId}">×</div>
+        </div>`).join('')
+        + `<div class="cart-total-row"><span class="l">Total · ${cart.length} carte${cart.length > 1 ? 's' : ''}</span><span class="v">${fmtPrice(total)}</span></div>`;
+    }
+    openModal(`
+      <div class="modal" style="max-width: 480px;">
+        <div class="modal-close">×</div>
+        <div class="modal-header">
+          <h2>Mon <span class="accent">panier</span></h2>
+        </div>
+        <div class="modal-body">${body}</div>
+        ${cart.length ? `<div class="modal-footer">
+          <button class="btn btn-primary btn-large" id="cart-checkout">Passer commande · ${fmtPrice(total)}</button>
+          <button class="btn btn-ghost" id="cart-clear">Vider le panier</button>
+        </div>` : ''}
+      </div>
+    `);
+    document.querySelectorAll('[data-remove-cart]').forEach(el => {
+      el.addEventListener('click', () => {
+        window.Storage.removeFromCart(el.dataset.removeCart);
+        updateCartBadge();
+        openCart();
+      });
+    });
+    const checkout = document.getElementById('cart-checkout');
+    if (checkout) checkout.addEventListener('click', () => {
+      if (!window.Auth.isLoggedIn()) { closeModal(); openLogin(); return; }
+      const items = window.Storage.getCart();
+      items.forEach(it => window.Storage.addToCollection(it.cardId));
+      window.Storage.clearCart();
+      updateCartBadge();
+      closeModal();
+      toast('Commande confirmée ! ' + items.length + ' carte(s) ajoutée(s) à votre collection.', 'success', 4000);
+    });
+    const clear = document.getElementById('cart-clear');
+    if (clear) clear.addEventListener('click', () => {
+      window.Storage.clearCart();
+      updateCartBadge();
+      openCart();
+    });
+  }
+
+  // ============================================
   // NAVBAR SEARCH
   // ============================================
   function installNavbarSearch() {
@@ -664,21 +736,38 @@
   }
 
   // ============================================
-  // INSTALL NAVBAR (user dropdown OR login/signup buttons)
+  // INSTALL NAVBAR (icônes panier/favoris + user dropdown OU login/signup)
   // ============================================
 
   function installNavbar() {
     const navCta = document.querySelector('.nav-cta');
     if (!navCta) return;
 
-    // Clear existing login/signup buttons (keep theme toggle)
-    const existing = navCta.querySelectorAll('.btn-ghost.btn-small, .btn-primary.btn-small, .nav-user');
+    // Clear existing login/signup buttons + icons (keep theme toggle)
+    const existing = navCta.querySelectorAll('.btn-ghost.btn-small, .btn-primary.btn-small, .nav-user, .nav-icon-btn');
     existing.forEach(el => el.remove());
+
+    // Icônes marketplace : favoris + panier
+    const favBtn = document.createElement('button');
+    favBtn.className = 'nav-icon-btn';
+    favBtn.title = 'Favoris';
+    favBtn.innerHTML = '♥';
+    favBtn.addEventListener('click', () => { window.location.href = 'profil.html#favorites'; });
+
+    const cartBtn = document.createElement('button');
+    cartBtn.className = 'nav-icon-btn';
+    cartBtn.id = 'nav-cart-btn';
+    cartBtn.title = 'Panier';
+    const cc = window.Storage.cartCount();
+    cartBtn.innerHTML = '🛒<span class="nav-icon-badge' + (cc > 0 ? '' : ' hidden') + '">' + cc + '</span>';
+    cartBtn.addEventListener('click', openCart);
+
+    navCta.appendChild(favBtn);
+    navCta.appendChild(cartBtn);
 
     const user = window.Auth.getCurrentUser();
 
     if (user) {
-      // Logged in : show user dropdown
       const wrap = document.createElement('div');
       wrap.className = 'nav-user';
       const isCard = (user.avatarImage || '').startsWith('http');
@@ -694,6 +783,7 @@
         <div class="user-dropdown">
           <a href="profil.html">👤 Ma collection</a>
           <a href="profil.html#favorites">♥ Favoris</a>
+          <a href="encheres.html">🔨 Enchères</a>
           <a href="trade.html">⇌ Mes échanges</a>
           <a href="marche.html">🛒 Marché</a>
           <div class="divider"></div>
@@ -724,7 +814,6 @@
         }
       });
     } else {
-      // Not logged in
       const ghost = document.createElement('button');
       ghost.className = 'btn btn-ghost btn-small';
       ghost.textContent = 'Connexion';
@@ -742,16 +831,12 @@
 
   // ============================================
   // GLOBAL CLICK INTERCEPTOR
-  // For "Connexion" / "S'inscrire" buttons embedded in pages
   // ============================================
 
   document.addEventListener('click', (e) => {
-    // Catch CTAs that aren't part of nav
     const btn = e.target.closest('button');
     if (!btn) return;
     const txt = btn.textContent.trim().toLowerCase();
-
-    // Buttons that should trigger signup
     if (btn.matches('.btn-primary.btn-large') && (txt.includes("s'inscrire") || txt.includes("rejoindre") || txt === "s'inscrire gratuitement")) {
       if (!window.Auth.isLoggedIn()) { e.preventDefault(); openSignup(); }
     }
@@ -766,19 +851,16 @@
     openLogin, openSignup,
     confirm, toast,
     installNavbar,
+    openCart, updateCartBadge,
   };
 
   // Auto-install when DOM ready
   function init() {
-    // Ensure demo user exists
     window.Auth.ensureDemoUser();
-    // Seed demo data only if logged in
     if (window.Auth.isLoggedIn()) {
       window.Storage.seedDemoData();
     }
-    // Install navbar
     installNavbar();
-    // Install search
     installNavbarSearch();
   }
 

@@ -27,16 +27,16 @@
       const lastName = parts.slice(1).join(' ') || 'Dresseur';
       headerH1.innerHTML = firstName + ' <span class="accent">' + lastName + '</span>';
     }
-    if (usernameEl) usernameEl.textContent = '@' + user.username + ' \u00b7 Membre depuis ' + dateStr;
+    if (usernameEl) usernameEl.textContent = '@' + user.username + ' · Membre depuis ' + dateStr;
     if (metaEl) {
       metaEl.innerHTML =
-        '<span>\u2b50 ' + user.stats.rating + '/5 (' + user.stats.reviews + ' avis)</span>' +
+        '<span>⭐ ' + user.stats.rating + '/5 (' + user.stats.reviews + ' avis)</span>' +
         '<span class="dot"></span>' +
-        '<span>\ud83d\udce6 ' + user.stats.sales + ' ventes</span>' +
+        '<span>📦 ' + user.stats.sales + ' ventes</span>' +
         '<span class="dot"></span>' +
-        '<span>\ud83e\udd1d ' + user.stats.trades + ' \u00e9changes</span>' +
+        '<span>🤝 ' + user.stats.trades + ' échanges</span>' +
         '<span class="dot"></span>' +
-        '<span>\ud83d\udccd ' + user.location + '</span>';
+        '<span>📍 ' + user.location + '</span>';
     }
   }
 
@@ -78,15 +78,12 @@
   document.getElementById('tab-count-fav').textContent = favoriteIds.length;
   document.getElementById('stat-fav').textContent = favoriteIds.length;
 
-  // unique sets
   const uniqueSets = new Set();
   allCards.forEach(c => { if (c.set?.id) uniqueSets.add(c.set.id); });
   document.getElementById('stat-sets').textContent = uniqueSets.size;
 
-  // Record portfolio value for today
   window.Storage.recordPortfolioValue(totalValue);
 
-  // Compute performance vs 30 days ago
   const history = window.Storage.getPortfolioHistory();
   const perfEl = document.getElementById('stat-perf');
   if (history.length >= 2) {
@@ -94,7 +91,7 @@
     const cur = history[history.length - 1].value;
     if (old > 0) {
       const pct = ((cur - old) / old) * 100;
-      perfEl.textContent = (pct >= 0 ? '\u2191 +' : '\u2193 ') + pct.toFixed(1) + '%';
+      perfEl.textContent = (pct >= 0 ? '↑ +' : '↓ ') + pct.toFixed(1) + '%';
       perfEl.className = 'v ' + (pct >= 0 ? 'green' : 'red');
     } else {
       perfEl.textContent = '—';
@@ -120,7 +117,7 @@
       '<div class="pkmn-card-set">' + (c.set?.name || '').substring(0, 22) + '</div>' +
       '<div class="pkmn-card-foot">' +
       '<div class="pkmn-card-price">' + window.TCGdex.formatPrice(priceData.price) + '</div>' +
-      '<div class="pkmn-card-trend ' + (trend >= 0 ? '' : 'down') + '">' + (trend >= 0 ? '\u2191' : '\u2193') + Math.abs(trend) + '%</div>' +
+      '<div class="pkmn-card-trend ' + (trend >= 0 ? '' : 'down') + '">' + (trend >= 0 ? '↑' : '↓') + Math.abs(trend) + '%</div>' +
       '</div></div></a></div>';
   }
 
@@ -128,10 +125,10 @@
   if (allCards.length === 0) {
     collGrid.innerHTML =
       '<div class="empty-state" style="grid-column:1/-1;">' +
-      '<div class="emoji">\ud83c\udccf</div>' +
+      '<div class="emoji">🃏</div>' +
       '<h3>Votre collection est vide</h3>' +
-      '<p>Commencez \u00e0 collectionner ! Parcourez les s\u00e9ries et marquez les cartes que vous poss\u00e9dez.</p>' +
-      '<a href="series.html" class="btn btn-primary" style="margin-top:16px;">Parcourir les s\u00e9ries</a>' +
+      '<p>Commencez à collectionner ! Parcourez les séries et marquez les cartes que vous possédez.</p>' +
+      '<a href="series.html" class="btn btn-primary" style="margin-top:16px;">Parcourir les séries</a>' +
       '</div>';
   } else {
     collGrid.innerHTML = allCards.map(renderCard).join('');
@@ -142,10 +139,10 @@
   if (favoriteIds.length === 0) {
     favTabContent.innerHTML =
       '<div class="empty-state">' +
-      '<div class="emoji">\u2661</div>' +
+      '<div class="emoji">♡</div>' +
       '<h3>Aucun favori pour le moment</h3>' +
-      '<p>Cliquez sur l\'ic\u00f4ne c\u0153ur d\'une carte pour l\'ajouter ici.</p>' +
-      '<a href="marche.html" class="btn btn-primary" style="margin-top:16px;">Explorer le march\u00e9</a>' +
+      '<p>Cliquez sur l\'icône cœur d\'une carte pour l\'ajouter ici.</p>' +
+      '<a href="marche.html" class="btn btn-primary" style="margin-top:16px;">Explorer le marché</a>' +
       '</div>';
   } else {
     const favCards = (await Promise.all(favoriteIds.map(id =>
@@ -165,9 +162,8 @@
     const id = btn.dataset.favId;
     const nowFav = window.Storage.toggleFavorite(id);
     document.querySelectorAll('[data-fav-id="' + id + '"]').forEach(b => b.classList.toggle('active', nowFav));
-    window.UI.toast(nowFav ? 'Ajout\u00e9 aux favoris \u2665' : 'Retir\u00e9 des favoris', nowFav ? 'success' : 'info');
+    window.UI.toast(nowFav ? 'Ajouté aux favoris ♥' : 'Retiré des favoris', nowFav ? 'success' : 'info');
 
-    // Update fav count
     const newFav = window.Storage.getFavorites();
     document.getElementById('tab-count-fav').textContent = newFav.length;
     document.getElementById('stat-fav').textContent = newFav.length;
@@ -221,26 +217,26 @@
   if (activity.length === 0) {
     activityTab.innerHTML =
       '<div class="empty-state">' +
-      '<div class="emoji">\ud83d\udcca</div>' +
-      '<h3>Aucune activit\u00e9 encore</h3>' +
-      '<p>Vos achats, ventes et \u00e9changes appara\u00eetront ici.</p>' +
+      '<div class="emoji">📊</div>' +
+      '<h3>Aucune activité encore</h3>' +
+      '<p>Vos achats, ventes et échanges apparaîtront ici.</p>' +
       '</div>';
   } else {
     const timeAgo = (ts) => {
       const diff = Date.now() - ts;
       const mins = Math.floor(diff / 60000);
-      if (mins < 1) return "\u00e0 l'instant";
+      if (mins < 1) return "à l'instant";
       if (mins < 60) return 'il y a ' + mins + ' min';
       const hrs = Math.floor(mins / 60);
       if (hrs < 24) return 'il y a ' + hrs + 'h';
       const days = Math.floor(hrs / 24);
       return 'il y a ' + days + 'j';
     };
-    const icons = { collection: '\ud83c\udccf', trade: '\u21cc', listing: '\ud83c\udff7', system: '\u2b50' };
+    const icons = { collection: '🃏', trade: '⇌', listing: '🏷', system: '⭐' };
     activityTab.innerHTML = '<div class="activity-list">' +
       activity.slice(0, 30).map(a =>
         '<div class="activity-item">' +
-        '<div class="activity-icon">' + (icons[a.type] || '\u2022') + '</div>' +
+        '<div class="activity-icon">' + (icons[a.type] || '•') + '</div>' +
         '<div class="activity-content">' +
         '<div class="activity-msg">' + a.message + '</div>' +
         '<div class="activity-time">' + timeAgo(a.createdAt) + '</div>' +
@@ -260,18 +256,14 @@
   // 12. SETTINGS MODAL — Avatar, pseudo (1×/14j)
   // ============================================
 
-  // Liste curée d'IDs de cartes pour le picker d'avatar
-  // (cartes iconiques, accessibles via TCGdex - les mêmes images que partout sur le site)
   const AVATAR_CARD_IDS = [
     'base1-4', 'base1-2', 'base1-15', 'base1-58',
     'neo1-9', 'xy12-12', 'swsh4-44', 'swsh7-150',
     'base1-1', 'base1-3', 'base1-10', 'base1-25',
   ];
 
-  function getAvatarHtml(u, size = 88) {
+  function getAvatarHtml(u) {
     if (u.avatarImage) {
-      // Card art : crop sur la zone illustration (haut de la carte)
-      // Photo upload : object-position center par défaut
       const isCard = u.avatarImage.startsWith('http');
       const pos = isCard ? 'center 28%' : 'center';
       return '<img src="' + u.avatarImage + '" alt="" style="width:100%;height:100%;object-fit:cover;object-position:' + pos + ';border-radius:50%;">';
@@ -279,11 +271,9 @@
     return u.avatar || (u.name || '?').charAt(0).toUpperCase();
   }
 
-  // Met à jour TOUS les rendus d'avatar de la page courante après changement
   function refreshAvatarEverywhere() {
     const u = window.Auth.getCurrentUser();
     if (!u) return;
-    // Profil header
     const headerAv = document.querySelector('.profil-avatar');
     if (headerAv) {
       headerAv.innerHTML = u.avatarImage ? getAvatarHtml(u) : '';
@@ -291,7 +281,6 @@
       headerAv.style.padding = u.avatarImage ? '0' : '';
       headerAv.style.overflow = u.avatarImage ? 'hidden' : '';
     }
-    // Navbar
     const navAv = document.querySelector('.nav-user-avatar');
     if (navAv) {
       navAv.innerHTML = u.avatarImage ? getAvatarHtml(u) : '';
@@ -308,7 +297,6 @@
     const canChange = cd.canChange;
     const lastDate = cd.lastChange ? new Date(cd.lastChange).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : null;
 
-    // Récupère les images des cartes du picker (en parallèle, résilient)
     const _previewIsCard = (u.avatarImage || '').startsWith('http');
     const _previewPos = _previewIsCard ? 'center 28%' : 'center';
     const avatarPreviewHtml = u.avatarImage
@@ -317,15 +305,13 @@
 
     window.UI.openModal(
       '<div class="modal" style="max-width:560px;">' +
-        '<div class="modal-close">\u00d7</div>' +
+        '<div class="modal-close">×</div>' +
         '<div class="modal-header">' +
           '<div class="pokeball-mini"></div>' +
-          '<h2>Param\u00e8tres du <span class="accent">compte</span></h2>' +
-          '<p>G\u00e9rez votre avatar et votre pseudo public.</p>' +
+          '<h2>Paramètres du <span class="accent">compte</span></h2>' +
+          '<p>Gérez votre avatar et votre pseudo public.</p>' +
         '</div>' +
         '<div class="modal-body">' +
-
-          // ============ AVATAR ============
           '<div style="margin-bottom:24px;">' +
             '<label style="display:block;font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:0.12em;color:var(--gray-text);margin-bottom:12px;font-weight:600;">Photo de profil</label>' +
             '<div style="display:flex;gap:16px;align-items:center;margin-bottom:14px;">' +
@@ -334,36 +320,34 @@
               '</div>' +
               '<div style="flex:1;">' +
                 '<div style="font-weight:700;font-size:14px;margin-bottom:4px;">Choisissez votre avatar</div>' +
-                '<div style="font-size:12px;color:var(--gray-text);">Une carte ic\u00f4nique ou votre propre photo (max 2&nbsp;Mo).</div>' +
+                '<div style="font-size:12px;color:var(--gray-text);">Une carte icônique ou votre propre photo (max 2&nbsp;Mo).</div>' +
               '</div>' +
             '</div>' +
             '<div style="display:flex;gap:6px;margin-bottom:12px;">' +
-              '<button class="filter-chip active" data-av-tab="cards" type="button">Cartes Pok\u00e9mon</button>' +
+              '<button class="filter-chip active" data-av-tab="cards" type="button">Cartes Pokémon</button>' +
               '<button class="filter-chip" data-av-tab="upload" type="button">Charger une photo</button>' +
-              (u.avatarImage ? '<button class="filter-chip" data-av-tab="reset" type="button" style="margin-left:auto;color:var(--red);">R\u00e9initialiser</button>' : '') +
+              (u.avatarImage ? '<button class="filter-chip" data-av-tab="reset" type="button" style="margin-left:auto;color:var(--red);">Réinitialiser</button>' : '') +
             '</div>' +
             '<div id="av-tab-cards" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:12px;background:var(--gray-bg);border-radius:var(--radius);max-height:220px;overflow-y:auto;">' +
-              '<div style="grid-column:1/-1;text-align:center;font-size:12px;color:var(--gray-text);padding:10px;">Chargement des cartes\u2026</div>' +
+              '<div style="grid-column:1/-1;text-align:center;font-size:12px;color:var(--gray-text);padding:10px;">Chargement des cartes…</div>' +
             '</div>' +
             '<div id="av-tab-upload" style="display:none;padding:16px;background:var(--gray-bg);border-radius:var(--radius);text-align:center;">' +
               '<input type="file" id="avatar-file-input" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none;">' +
-              '<button class="btn btn-primary" id="avatar-pick-file" type="button">\ud83d\udcc1 Choisir une image</button>' +
-              '<div style="font-size:11px;color:var(--gray-text);margin-top:10px;">PNG, JPG, WEBP ou GIF \u00b7 2&nbsp;Mo max \u00b7 sera recadr\u00e9e en rond</div>' +
+              '<button class="btn btn-primary" id="avatar-pick-file" type="button">📁 Choisir une image</button>' +
+              '<div style="font-size:11px;color:var(--gray-text);margin-top:10px;">PNG, JPG, WEBP ou GIF · 2&nbsp;Mo max · sera recadrée en rond</div>' +
             '</div>' +
           '</div>' +
-
-          // ============ PSEUDO ============
           '<div id="settings-error" style="display:none;"></div>' +
           '<div class="form-field">' +
             '<label>Nom d\'utilisateur (pseudo)</label>' +
             '<input type="text" id="new-username" value="' + u.username + '" ' + (canChange ? '' : 'disabled') + ' autocomplete="off" maxlength="24">' +
             '<div class="hint">' + (canChange
-              ? 'Lettres min., chiffres, underscore. 3-24 caract\u00e8res.<br><strong style="color:var(--blue);">\u26a0 Vous ne pourrez changer \u00e0 nouveau qu\'apr\u00e8s 14 jours.</strong>'
-              : '<strong style="color:var(--orange);">Verrouill\u00e9</strong> \u00b7 prochain changement possible dans <strong>' + cd.remainingDays + ' jour' + (cd.remainingDays > 1 ? 's' : '') + '</strong>.' + (lastDate ? '<br>Dernier changement : ' + lastDate : '')) +
+              ? 'Lettres min., chiffres, underscore. 3-24 caractères.<br><strong style="color:var(--blue);">⚠ Vous ne pourrez changer à nouveau qu\'après 14 jours.</strong>'
+              : '<strong style="color:var(--orange);">Verrouillé</strong> · prochain changement possible dans <strong>' + cd.remainingDays + ' jour' + (cd.remainingDays > 1 ? 's' : '') + '</strong>.' + (lastDate ? '<br>Dernier changement : ' + lastDate : '')) +
             '</div>' +
           '</div>' +
           '<div style="padding:14px;background:var(--gray-bg);border-radius:var(--radius);font-size:12px;color:var(--gray-text);line-height:1.5;margin-top:8px;">' +
-            '<strong style="color:var(--ink);">Pourquoi cette limite&nbsp;?</strong> Pour pr\u00e9server la r\u00e9putation des dresseurs et \u00e9viter les arnaques d\'identit\u00e9 sur les \u00e9changes, le pseudo n\'est modifiable qu\'une fois tous les <strong style="color:var(--ink);">14 jours</strong>.' +
+            '<strong style="color:var(--ink);">Pourquoi cette limite&nbsp;?</strong> Pour préserver la réputation des dresseurs et éviter les arnaques d\'identité sur les échanges, le pseudo n\'est modifiable qu\'une fois tous les <strong style="color:var(--ink);">14 jours</strong>.' +
           '</div>' +
         '</div>' +
         '<div class="modal-footer">' +
@@ -372,7 +356,6 @@
       '</div>'
     );
 
-    // ============ AVATAR PICKER : load card images ============
     let pendingAvatar = u.avatarImage || null;
     const cardsTabEl = document.getElementById('av-tab-cards');
     const uploadTabEl = document.getElementById('av-tab-upload');
@@ -389,9 +372,7 @@
       }
       cardsTabEl.innerHTML = valid.map(c => {
         const img = window.TCGdex.getCardImage(c, 'low', 'webp');
-        const selected = pendingAvatar === img ? 'border-color:var(--blue);box-shadow:0 0 0 3px var(--accent-soft, rgba(91,141,239,.2));' : '';
-        // Crop agressif : on zoome sur la zone illustration de la carte (haut, ~25-55%)
-        // pour faire ressortir le Pokémon. Image en cover sur conteneur rond.
+        const selected = pendingAvatar === img ? 'border-color:var(--blue);box-shadow:0 0 0 3px rgba(79,99,245,.2);' : '';
         return '<button type="button" data-av-pick="' + img + '" title="' + (c.name || '') + '" style="aspect-ratio:1;border-radius:50%;border:2.5px solid var(--gray-line);background:var(--white);overflow:hidden;padding:0;cursor:pointer;transition:.15s;position:relative;' + selected + '">' +
           '<img src="' + img + '" alt="' + (c.name || '') + '" style="position:absolute;width:200%;height:200%;top:-30%;left:-50%;object-fit:cover;object-position:center 32%;">' +
         '</button>';
@@ -407,11 +388,10 @@
       } else {
         previewEl.innerHTML = '<span style="font-family:var(--font-display);font-size:42px;font-weight:800;color:#1a1a2e;">' + (u.avatar || '?') + '</span>';
       }
-      // Highlight selected
       cardsTabEl.querySelectorAll('[data-av-pick]').forEach(b => {
         if (b.dataset.avPick === dataUrl) {
           b.style.borderColor = 'var(--blue)';
-          b.style.boxShadow = '0 0 0 3px rgba(91,141,239,0.2)';
+          b.style.boxShadow = '0 0 0 3px rgba(79,99,245,0.2)';
         } else {
           b.style.borderColor = 'var(--gray-line)';
           b.style.boxShadow = '';
@@ -419,14 +399,12 @@
       });
     }
 
-    // Card click
     cardsTabEl.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-av-pick]');
       if (!btn) return;
       setPendingAvatar(btn.dataset.avPick);
     });
 
-    // Tab switching
     document.querySelectorAll('[data-av-tab]').forEach(btn => {
       btn.addEventListener('click', () => {
         const tab = btn.dataset.avTab;
@@ -441,7 +419,6 @@
       });
     });
 
-    // Upload
     const fileInput = document.getElementById('avatar-file-input');
     document.getElementById('avatar-pick-file').addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', (e) => {
@@ -451,7 +428,6 @@
         window.UI.toast('Image trop lourde (2 Mo max)', 'error');
         return;
       }
-      // Recadrer/redimensionner via canvas pour avatar compact
       const reader = new FileReader();
       reader.onload = (ev) => {
         const img = new Image();
@@ -460,27 +436,24 @@
           const canvas = document.createElement('canvas');
           canvas.width = size; canvas.height = size;
           const ctx = canvas.getContext('2d');
-          // Couvre le carré, centré
           const ratio = Math.max(size / img.width, size / img.height);
           const w = img.width * ratio;
           const h = img.height * ratio;
           ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
           const dataUrl = canvas.toDataURL('image/webp', 0.82);
           setPendingAvatar(dataUrl);
-          window.UI.toast('Image charg\u00e9e. Cliquez sur Enregistrer.', 'info');
+          window.UI.toast('Image chargée. Cliquez sur Enregistrer.', 'info');
         };
         img.src = ev.target.result;
       };
       reader.readAsDataURL(file);
     });
 
-    // SAVE
     document.getElementById('settings-save').addEventListener('click', () => {
       const errEl = document.getElementById('settings-error');
       const errors = [];
       let usernameChanged = false;
 
-      // 1) Username (si modifi\u00e9)
       const newU = document.getElementById('new-username').value.trim().toLowerCase();
       if (canChange && newU && newU !== u.username) {
         const res = window.Auth.changeUsername(newU);
@@ -491,7 +464,6 @@
         }
       }
 
-      // 2) Avatar (toujours autoris\u00e9)
       if (pendingAvatar !== u.avatarImage) {
         window.Auth.updateProfile({ avatarImage: pendingAvatar || null });
       }
@@ -507,10 +479,10 @@
 
       window.UI.closeModal();
       if (usernameChanged) {
-        window.UI.toast('Compte mis \u00e0 jour. Rechargement\u2026', 'success');
+        window.UI.toast('Compte mis à jour. Rechargement…', 'success');
         setTimeout(() => window.location.reload(), 600);
       } else {
-        window.UI.toast('Avatar mis \u00e0 jour \u2713', 'success');
+        window.UI.toast('Avatar mis à jour ✓', 'success');
         refreshAvatarEverywhere();
       }
     });
