@@ -681,8 +681,14 @@
       // Logged in : show user dropdown
       const wrap = document.createElement('div');
       wrap.className = 'nav-user';
+      const isCard = (user.avatarImage || '').startsWith('http');
+      const avatarPos = isCard ? 'center 28%' : 'center';
+      const avatarInner = user.avatarImage
+        ? '<img src="' + user.avatarImage + '" alt="" style="width:100%;height:100%;object-fit:cover;object-position:' + avatarPos + ';border-radius:50%;">'
+        : user.avatar;
+      const avatarStyle = user.avatarImage ? 'padding:0;overflow:hidden;' : '';
       wrap.innerHTML = `
-        <div class="nav-user-avatar">${user.avatar}</div>
+        <div class="nav-user-avatar" style="${avatarStyle}">${avatarInner}</div>
         <div class="nav-user-name">${user.name.split(' ')[0]}</div>
         <span class="nav-user-chevron">▼</span>
         <div class="user-dropdown">

@@ -150,6 +150,130 @@
     padding: 28px;
     margin-bottom: 24px;
   }
+
+  /* CONDITION PRICING GRID */
+  .condition-block {
+    background: var(--white);
+    border: 1.5px solid var(--gray-line);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    margin-bottom: 24px;
+  }
+  .condition-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .condition-head h3 {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .condition-sub {
+    color: var(--gray-text);
+    font-size: 13px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+  .condition-sub strong { color: var(--ink); }
+  .cond-table-wrap {
+    border: 1px solid var(--gray-line);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .cond-row {
+    display: grid;
+    grid-template-columns: 110px 1fr auto auto;
+    gap: 16px;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--gray-line);
+    background: var(--white);
+    transition: background 0.15s;
+  }
+  .cond-row:last-child { border-bottom: none; }
+  .cond-row:hover { background: var(--cream); }
+  .cond-row.base {
+    background: rgba(91, 141, 239, 0.06);
+    border-left: 3px solid var(--blue);
+  }
+  .cond-row.base:hover { background: rgba(91, 141, 239, 0.10); }
+  .cond-badge {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 6px 10px;
+    border-radius: var(--radius-pill);
+    text-align: center;
+    text-transform: uppercase;
+    border: 1.5px solid;
+  }
+  .cond-badge.grade-PSA10 { background: #fef3c7; color: #92400e; border-color: #d97706; }
+  .cond-badge.grade-PSA9  { background: #fef9c3; color: #854d0e; border-color: #ca8a04; }
+  .cond-badge.grade-M     { background: var(--green-light); color: var(--green); border-color: var(--green); }
+  .cond-badge.grade-NM    { background: rgba(91, 141, 239, 0.12); color: var(--blue); border-color: var(--blue); }
+  .cond-badge.grade-EX    { background: var(--gray-bg); color: var(--ink); border-color: var(--gray-line); }
+  .cond-badge.grade-GD    { background: var(--gray-bg); color: var(--gray-text); border-color: var(--gray-line); }
+  .cond-badge.grade-PL    { background: rgba(255, 107, 53, 0.10); color: var(--orange); border-color: var(--orange); }
+  .cond-badge.grade-PR    { background: rgba(220, 10, 45, 0.08); color: var(--red); border-color: var(--red); }
+  [data-theme="dark"] .cond-badge.grade-PSA10 { background: rgba(217, 119, 6, 0.15); color: #fbbf24; }
+  [data-theme="dark"] .cond-badge.grade-PSA9  { background: rgba(202, 138, 4, 0.15); color: #facc15; }
+
+  .cond-name {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .cond-name .desc {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--gray-text);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 2px;
+    font-weight: 500;
+  }
+  .cond-avail {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--gray-text);
+    text-align: right;
+    white-space: nowrap;
+  }
+  .cond-avail strong { color: var(--ink); }
+  .cond-avail.zero { color: var(--gray-text-2); }
+  .cond-avail.zero strong { color: var(--gray-text-2); }
+  .cond-price {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--ink);
+    text-align: right;
+    letter-spacing: -0.01em;
+    min-width: 80px;
+  }
+  .cond-row.base .cond-price { color: var(--blue); }
+  .cond-foot {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: var(--gray-bg);
+    border-radius: var(--radius);
+    font-size: 12px;
+    color: var(--gray-text);
+    line-height: 1.5;
+  }
+  .cond-foot strong { color: var(--ink); }
+  @media (max-width: 600px) {
+    .cond-row { grid-template-columns: 90px 1fr auto; gap: 10px; padding: 10px 12px; }
+    .cond-avail { display: none; }
+  }
   .price-detail-head {
     display: flex;
     justify-content: space-between;
@@ -437,6 +561,21 @@
   const params = new URLSearchParams(window.location.search);
   const cardId = params.get('id');
 
+  // Descriptions courtes de chaque grade — repère pour les acheteurs
+  function conditionDescription(code) {
+    switch (code) {
+      case 'PSA10': return 'Gradée PSA · qualité musée';
+      case 'PSA9':  return 'Gradée PSA · quasi-parfaite';
+      case 'M':     return 'Aucun défaut visible, comme sortie du booster';
+      case 'NM':    return 'Standard du marché · micro-défaut max';
+      case 'EX':    return 'Léger frottement bord/coin, jouable';
+      case 'GD':    return 'Plis légers ou whitening visible';
+      case 'PL':    return 'Marques d\'usage marquées';
+      case 'PR':    return 'Très abîmée · à éviter sauf rareté';
+      default:      return '';
+    }
+  }
+
   if (!cardId) {
     document.getElementById('card-detail').innerHTML = '<div class="empty-state" style="grid-column: 1/-1;"><div class="emoji">🃏</div><h3>Carte non spécifiée</h3><a href="marche.html" class="btn btn-primary" style="margin-top: 16px;">Voir le marché</a></div>';
     return;
@@ -488,7 +627,7 @@
         <div class="price-hero">
           <div class="price-row">
             <div>
-              <div class="price-label">Cote actuelle · ${isReal ? 'Cardmarket' : 'Estimation'}</div>
+              <div class="price-label">Cote actuelle · ${isReal ? 'Cardmarket' : 'Estimation'} · Near Mint</div>
               <div class="price-current">${window.TCGdex.formatPrice(price)}</div>
               <div class="price-source-badge ${isReal ? 'real' : 'estimated'}">
                 <span class="dot"></span> ${sourceLabel}
@@ -502,6 +641,37 @@
           <div class="price-actions">
             <button class="btn btn-primary">Acheter maintenant</button>
             <button class="btn btn-secondary">Faire une offre</button>
+          </div>
+        </div>
+
+        <div class="condition-block">
+          <div class="condition-head">
+            <h3>Prix par état</h3>
+            <div class="price-update">Basé sur ventes Cardmarket & eBay</div>
+          </div>
+          <div class="condition-sub">
+            Le prix d'une carte dépend fortement de son état. La cote affichée plus haut correspond à un exemplaire <strong>Near Mint (NM)</strong>. Les exemplaires gradés (PSA) sont scellés, garantis et valent un multiple, surtout pour les cartes anciennes.
+          </div>
+          <div class="cond-table-wrap">
+            ${(() => {
+              const grid = window.TCGdex.getConditionPricing(card);
+              return grid.map(g => `
+                <div class="cond-row ${g.isBase ? 'base' : ''}">
+                  <div class="cond-badge grade-${g.code}">${g.short}</div>
+                  <div class="cond-name">
+                    ${g.name}
+                    <span class="desc">${conditionDescription(g.code)}</span>
+                  </div>
+                  <div class="cond-avail ${g.avail === 0 ? 'zero' : ''}">
+                    ${g.avail === 0 ? 'Aucune offre' : `<strong>${g.avail}</strong> offre${g.avail > 1 ? 's' : ''}`}
+                  </div>
+                  <div class="cond-price">${window.TCGdex.formatPrice(g.price)}</div>
+                </div>
+              `).join('');
+            })()}
+          </div>
+          <div class="cond-foot">
+            <strong>Méthodologie :</strong> les multiplicateurs sont calibrés sur les ventes réussies récentes — Cardmarket Sold, eBay completed et les enchères graduées françaises (gradedcardcenter.com, PCA). Pour les cartes vintage holo (Base Set, Neo, e-Card), l'état PSA 10 peut atteindre 8 à 10× le prix NM ; pour les cartes modernes communes, l'écart est resserré.
           </div>
         </div>
 

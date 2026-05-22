@@ -299,9 +299,9 @@
         <div class="market-toolbar">
           <div class="results-count"><strong id="result-count">—</strong> cartes</div>
           <select class="sort-select" id="sort-select">
+            <option value="recent" selected>Plus récentes (date de sortie)</option>
             <option value="price-desc">Prix décroissant</option>
             <option value="price-asc">Prix croissant</option>
-            <option value="recent">Plus récentes</option>
             <option value="popular">Plus populaires</option>
           </select>
         </div>
@@ -345,7 +345,7 @@
     conditions: new Set(['NM']),
     prices: new Set(),    // 'lt10', '10-50', etc.
   };
-  let sort = 'price-desc';
+  let sort = 'recent';
 
   // ============================================
   // LOAD DATA — résilient : chargement parallèle,
@@ -363,22 +363,37 @@
     grid.innerHTML = '<div class="loading-state" style="grid-column: 1/-1;"><div class="pokeball-loader"></div>Chargement des cartes en vente…</div>';
     allCards = [];
     try {
-      const sets = await window.TCGdex.getAllSets();
-      if (!sets || sets.length === 0) throw new Error('Aucun set récupéré');
+      // 1) Récupère TOUS les sets principaux (hors promos McDo, POP, etc.)
+      //    déjà triés par série dans l'ordre chronologique canonique
+      //    Base Set 1999 → Écarlate & Violet 2024+
+      const mainlineSets = await window.TCGdex.getMainlineSets();
+      if (!mainlineSets || mainlineSets.length === 0) throw new Error('Aucun set récupéré');
 
-      // Populate series filter
+      // 2) Sidebar : liste les séries dans l'ordre chronologique (PAS McDo en premier)
+      //    On affiche les sets dans leur ordre de sortie, du plus ancien au plus récent.
       const filterEl = document.getElementById('filter-series');
-      const recent = sets.slice(-15).reverse();
-      filterEl.innerHTML = recent.map(s => `
-        <label class="filter-option">
-          <input type="checkbox" data-filter="series" value="${s.id}">
-          ${s.name.substring(0, 28)}
-          <span class="count">${s.cardCount?.total || '?'}</span>
-        </label>
-      `).join('');
+      // Trie : par date croissante (les plus anciennes d'abord)
+      const sortedForSidebar = [...mainlineSets].sort((a, b) =>
+        (a.releaseDate || '9999').localeCompare(b.releaseDate || '9999')
+      );
+      // On en montre 20 max pour ne pas saturer la sidebar (les plus récentes pour le marché)
+      // mais on garde l'ordre chronologique : on prend les 20 dernières et on les inverse
+      // pour avoir "plus récent en haut" — ce qui matche l'attente utilisateur.
+      const sidebarSets = sortedForSidebar.slice(-20).reverse();
+      filterEl.innerHTML = sidebarSets.map(s => {
+        const year = (s.releaseDate || '').slice(0, 4) || '—';
+        return `
+          <label class="filter-option">
+            <input type="checkbox" data-filter="series" value="${s.id}">
+            ${s.name.substring(0, 26)}
+            <span class="count" style="font-size:10px;">${year}</span>
+          </label>
+        `;
+      }).join('');
 
-      // Load cards from the 6 most recent sets — en parallèle, échecs tolérés
-      const topSets = sets.slice(-6).reverse();
+      // 3) Cartes en vente : on charge depuis les 6 sets MAINLINE les plus récents
+      //    (pas McDo) — c'est ce que l'utilisateur veut voir en premier
+      const topSets = sortedForSidebar.slice(-6).reverse();
       const details = await Promise.all(
         topSets.map(set => window.TCGdex.getSetDetail(set.id).catch(() => null))
       );

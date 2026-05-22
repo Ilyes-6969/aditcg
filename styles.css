@@ -9,9 +9,9 @@
   --red-deep: #a30821;
   --red-light: #ff3554;
 
-  --blue: #4f63f5;
-  --blue-deep: #2f3fc4;
-  --blue-light: #8a98ff;
+  --blue: #5b8def;
+  --blue-deep: #3a6fd6;
+  --blue-light: #a3c2ff;
 
   --yellow: #ffcb05;
   --yellow-deep: #d9ab00;
@@ -53,7 +53,7 @@
   --shadow-lg: 0 12px 32px rgba(26, 26, 46, 0.12);
   --shadow-xl: 0 24px 60px rgba(26, 26, 46, 0.18);
   --shadow-red: 0 8px 20px rgba(220, 10, 45, 0.25);
-  --shadow-blue: 0 8px 20px rgba(59, 76, 202, 0.25);
+  --shadow-blue: 0 8px 20px rgba(91, 141, 239, 0.30);
 
   --container: 1320px;
 }
@@ -67,17 +67,17 @@
   --red-deep: #c91230;
   --red-light: #ff6b85;
 
-  --blue: #6577ff;
-  --blue-deep: #3b4cca;
-  --blue-light: #8d9cff;
+  --blue: #82a8ff;
+  --blue-deep: #5b8def;
+  --blue-light: #b5cfff;
 
   --yellow: #ffd633;
   --yellow-deep: #ffcb05;
   --yellow-light: #ffe066;
 
   /* Fond et surfaces — bleu nuit Pokémon */
-  --white: #1c1c2e;          /* surface principale */
-  --cream: #0d0d1a;          /* fond global */
+  --white: #0d0d3c;          /* surface principale */
+  --cream: #00002e;          /* fond global */
   --gray-bg: #252538;        /* surface élevée */
   --gray-line: #313148;      /* bordures */
   --gray-text: #a0a3b8;

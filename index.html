@@ -717,29 +717,61 @@
 (async () => {
 
   // ============================================
-  // HERO CARDS : 3 cartes iconiques
+  // HERO CARDS : 3 cartes iconiques, résilient aux 404 API
   // ============================================
   async function loadHeroCards() {
-    const ids = ['base1-4', 'sv03.5-9', 'swsh4-44']; // Dracaufeu Base, Charizard 151, Pikachu VMAX Vivid
     const heroEl = document.getElementById('hero-cards');
     if (!heroEl) return;
 
-    try {
-      const cards = await Promise.all(ids.map(id => window.TCGdex.getCardDetail(id).catch(() => null)));
-      heroEl.innerHTML = '';
-      cards.forEach((card, i) => {
-        if (card && card.image) {
-          const img = window.TCGdex.getCardImage(card, 'high', 'webp');
-          heroEl.insertAdjacentHTML('beforeend',
-            `<img class="hero-card-img" src="${img}" alt="${card.name}" loading="eager"
-              onerror="this.outerHTML='<div class=&quot;hero-card-img placeholder&quot;>🃏</div>'">`);
-        } else {
-          const emojis = ['🔥', '⚡', '✨'];
-          heroEl.insertAdjacentHTML('beforeend', `<div class="hero-card-img placeholder">${emojis[i]}</div>`);
+    // Liste de candidats — on prend les 3 premiers qui répondent
+    const candidates = [
+      'base1-4',     // Dracaufeu Base Set
+      'base1-2',     // Florizarre Base Set
+      'base1-15',    // Tortank Base Set
+      'neo1-9',      // Lugia Neo Genesis
+      'swsh4-44',    // Pikachu VMAX Vivid Voltage
+      'swsh7-150',   // Évoli/Noctali Evolving Skies
+      'xy12-12',     // Charizard Evolutions
+      'base1-58',    // Pikachu Base Set
+    ];
+
+    const results = await Promise.allSettled(
+      candidates.map(id => window.TCGdex.getCardDetail(id))
+    );
+    const cards = results
+      .filter(r => r.status === 'fulfilled' && r.value && r.value.image)
+      .map(r => r.value)
+      .slice(0, 3);
+
+    if (cards.length === 0) {
+      // Fallback : tente le 1er set le plus récent
+      try {
+        const sets = await window.TCGdex.getMainlineSets();
+        const latest = sets[sets.length - 1];
+        if (latest) {
+          const detail = await window.TCGdex.getSetDetail(latest.id);
+          if (detail?.cards) {
+            const picks = detail.cards.filter(c => c.image).slice(0, 3);
+            cards.push(...picks);
+          }
         }
-      });
-    } catch (e) {
-      console.warn('Hero cards failed:', e);
+      } catch {}
+    }
+
+    heroEl.innerHTML = '';
+    const emojis = ['🔥', '⚡', '✨'];
+    for (let i = 0; i < 3; i++) {
+      const card = cards[i];
+      if (card && card.image) {
+        const img = window.TCGdex.getCardImage(card, 'high', 'webp');
+        heroEl.insertAdjacentHTML(
+          'beforeend',
+          `<img class="hero-card-img" src="${img}" alt="${card.name || ''}" loading="eager"
+            onerror="this.outerHTML='<div class=&quot;hero-card-img placeholder&quot;>${emojis[i]}</div>'">`
+        );
+      } else {
+        heroEl.insertAdjacentHTML('beforeend', `<div class="hero-card-img placeholder">${emojis[i]}</div>`);
+      }
     }
   }
 
@@ -750,13 +782,17 @@
     const el = document.getElementById('collections-grid');
     if (!el) return;
     try {
-      const sets = await window.TCGdex.getAllSets();
+      // Hors promos (McDo, POP…) — l'utilisateur veut voir les vraies extensions
+      const sets = await window.TCGdex.getMainlineSets();
       if (!sets || sets.length === 0) throw new Error('No sets');
-      // Prend les 8 plus récents
-      const trending = sets.slice(-8).reverse();
+      // Tri chronologique strict puis on prend les 8 plus récentes
+      const sorted = [...sets].sort((a, b) =>
+        (a.releaseDate || '9999').localeCompare(b.releaseDate || '9999')
+      );
+      const trending = sorted.slice(-8).reverse();
       el.innerHTML = trending.map(set => {
         const logo = window.TCGdex.getSetLogo(set, 'webp');
-        const floor = window.TCGdex.estimatePrice({ id: set.id, rarity: 'common', name: '' }) * 30;
+        const floor = window.TCGdex.estimateSetFloor(set);
         const vol = (set.cardCount?.total || 100) * 8 + 200;
         const trend = ((set.id || '').split('').reduce((a,c) => a + c.charCodeAt(0), 0) % 40) - 10;
         return `
@@ -772,11 +808,11 @@
               <div class="coll-card-subtitle">${set.serie?.name || 'Série'} · ${(set.releaseDate || '').slice(0,4) || '—'}</div>
               <div class="coll-card-stats">
                 <div class="coll-stat-item">
-                  <div class="v">€${floor}</div>
+                  <div class="v">${window.TCGdex.formatPrice(floor)}</div>
                   <div class="l">Floor</div>
                 </div>
                 <div class="coll-stat-item">
-                  <div class="v">€${vol.toLocaleString('fr-FR')}</div>
+                  <div class="v">${window.TCGdex.formatPrice(vol)}</div>
                   <div class="l">Volume 24h</div>
                 </div>
                 <div class="coll-stat-item">
@@ -794,24 +830,29 @@
   }
 
   // ============================================
-  // HOT CARDS : Top 8 cartes iconiques
+  // HOT CARDS : Top 8 cartes iconiques (résilient aux 404 API)
   // ============================================
   async function loadHotCards() {
     const ids = [
       'base1-4',     // Charizard Base
       'base1-15',    // Venusaur Base
       'neo1-9',      // Lugia Neo Genesis
-      'sv03.5-9',    // Charizard 151
       'swsh4-44',    // Pikachu VMAX Vivid
       'swsh7-150',   // Umbreon Evolving Skies
-      'sv01-247',    // Koraidon
       'xy12-12',     // Charizard Evolutions
+      'base1-2',     // Blastoise Base
+      'base1-58',    // Pikachu Base
+      'neo1-1',
+      'xy12-11',
     ];
     const el = document.getElementById('hot-grid');
     if (!el) return;
     try {
-      const cards = await Promise.all(ids.map(id => window.TCGdex.getCardDetail(id).catch(() => null)));
-      const valid = cards.filter(Boolean);
+      const settled = await Promise.allSettled(ids.map(id => window.TCGdex.getCardDetail(id)));
+      const valid = settled
+        .filter(r => r.status === 'fulfilled' && r.value)
+        .map(r => r.value)
+        .slice(0, 8);
       if (valid.length === 0) throw new Error('No cards');
       el.innerHTML = valid.map(card => {
         const img = window.TCGdex.getCardImage(card, 'low', 'webp');
@@ -827,7 +868,7 @@
               <div class="hot-card-name">${card.name}</div>
               <div class="hot-card-set">${card.set?.name || ''}</div>
               <div class="hot-card-foot">
-                <div class="hot-card-price">€${price.toLocaleString('fr-FR')}</div>
+                <div class="hot-card-price">${window.TCGdex.formatPrice(price)}</div>
                 <div class="hot-card-trend ${trend >= 0 ? '' : 'down'}">${trend >= 0 ? '↑' : '↓'} ${Math.abs(trend)}%</div>
               </div>
             </div>

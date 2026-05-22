@@ -124,6 +124,61 @@ function updateProfile(updates) {
 }
 
 // ============================================
+// CHANGEMENT DE PSEUDO — limité à 1 fois tous les 14 jours
+// ============================================
+const USERNAME_COOLDOWN_MS = 14 * 24 * 60 * 60 * 1000; // 14 jours
+
+function getUsernameCooldown() {
+  const user = getCurrentUser();
+  if (!user) return { canChange: false, remainingMs: 0, remainingDays: 0, lastChange: null };
+  const last = user.usernameChangedAt || 0; // 0 = jamais changé → autorisé
+  if (!last) return { canChange: true, remainingMs: 0, remainingDays: 0, lastChange: null };
+  const elapsed = Date.now() - last;
+  if (elapsed >= USERNAME_COOLDOWN_MS) {
+    return { canChange: true, remainingMs: 0, remainingDays: 0, lastChange: last };
+  }
+  const remainingMs = USERNAME_COOLDOWN_MS - elapsed;
+  return {
+    canChange: false,
+    remainingMs,
+    remainingDays: Math.ceil(remainingMs / (24 * 60 * 60 * 1000)),
+    lastChange: last,
+  };
+}
+
+function changeUsername(newUsername) {
+  const user = getCurrentUser();
+  if (!user) return { success: false, errors: ['Vous devez être connecté'] };
+
+  // 1) Cooldown 14 jours
+  const cd = getUsernameCooldown();
+  if (!cd.canChange) {
+    return {
+      success: false,
+      errors: [`Vous pourrez changer votre pseudo dans ${cd.remainingDays} jour${cd.remainingDays > 1 ? 's' : ''}. Le pseudo n'est modifiable qu'une fois tous les 14 jours.`],
+    };
+  }
+
+  // 2) Validation
+  const u = (newUsername || '').toLowerCase().trim();
+  const errors = [];
+  if (u.length < 3) errors.push("Le pseudo doit faire au moins 3 caractères");
+  if (u.length > 24) errors.push("Le pseudo ne peut pas dépasser 24 caractères");
+  if (!/^[a-z0-9_]+$/.test(u)) errors.push("Lettres minuscules, chiffres et _ uniquement");
+  if (u === user.username) errors.push("C'est déjà votre pseudo actuel");
+
+  const users = getUsers();
+  if (users.some(other => other.id !== user.id && other.username === u)) {
+    errors.push("Ce pseudo est déjà pris");
+  }
+  if (errors.length > 0) return { success: false, errors };
+
+  // 3) Application
+  updateProfile({ username: u, usernameChangedAt: Date.now() });
+  return { success: true, newUsername: u };
+}
+
+// ============================================
 // DEMO USER (existe pour se connecter facilement, sans auto-login)
 // ============================================
 function ensureDemoUser() {
@@ -153,5 +208,8 @@ window.Auth = {
   login,
   logout,
   updateProfile,
+  changeUsername,
+  getUsernameCooldown,
+  USERNAME_COOLDOWN_MS,
   ensureDemoUser,
 };

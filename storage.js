@@ -203,12 +203,12 @@ function seedDemoData() {
 
   const demoCards = [
     'base1-4', 'base1-15', 'base1-25', 'base1-11',
-    'sv03.5-9', 'sv03.5-25', 'sv03.5-150',
     'swsh4-44', 'swsh4-29',
     'neo1-9', 'xy12-12', 'swsh7-150',
+    'base1-2', 'base1-58', 'base1-3',
   ];
   data.collection = demoCards;
-  data.favorites = ['base1-4', 'sv03.5-9', 'neo1-9'];
+  data.favorites = ['base1-4', 'neo1-9', 'swsh7-150'];
 
   // Activité initiale
   data.activity = [
