@@ -549,8 +549,11 @@
     sorted.forEach(set => {
       const key = set.serie?.id || 'autres';
       const name = set.serie?.name || 'Autres';
-      if (!grouped[key]) grouped[key] = { name, sets: [] };
+      if (!grouped[key]) grouped[key] = { name, sets: [], oldestDate: '9999' };
       grouped[key].sets.push(set);
+      // Track oldest date of any set in this group
+      const d = set.releaseDate || '9999';
+      if (d < grouped[key].oldestDate) grouped[key].oldestDate = d;
     });
 
     if (sorted.length === 0) {
@@ -558,7 +561,29 @@
       return;
     }
 
-    container.innerHTML = Object.values(grouped).map(grp => {
+    // Sort groups: real expansions chronologically, promo/McDo at the end
+    const isPromoGroup = (name) => {
+      const n = (name || '').toLowerCase();
+      return n.includes('mcdonald') || n.includes('promo') || n === 'autres' || n.includes('trainer kit');
+    };
+
+    let groups = Object.values(grouped);
+    if (activeSort === 'date-asc') {
+      groups.sort((a, b) => {
+        // Promo groups go to the end
+        if (isPromoGroup(a.name) && !isPromoGroup(b.name)) return 1;
+        if (!isPromoGroup(a.name) && isPromoGroup(b.name)) return -1;
+        return a.oldestDate.localeCompare(b.oldestDate);
+      });
+    } else if (activeSort === 'date-desc') {
+      groups.sort((a, b) => {
+        if (isPromoGroup(a.name) && !isPromoGroup(b.name)) return 1;
+        if (!isPromoGroup(a.name) && isPromoGroup(b.name)) return -1;
+        return b.oldestDate.localeCompare(a.oldestDate);
+      });
+    }
+
+    container.innerHTML = groups.map(grp => {
       const totalCards = grp.sets.reduce((s, x) => s + (x.cardCount?.total || 0), 0);
       const isList = viewMode === 'list';
       return `

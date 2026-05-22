@@ -436,6 +436,9 @@
 <script src="app.js"></script>
 <script>
 (async () => {
+  // Wait for Auth to be ready
+  if (window.Auth?.init) await window.Auth.init();
+
   const params = new URLSearchParams(window.location.search);
   const cardId = params.get('id');
 

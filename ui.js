@@ -702,7 +702,7 @@
             <div class="form-field">
               <label>Nom d'utilisateur (@username)</label>
               <input type="text" id="setting-username" placeholder="sacha_pkmn" value="${user.username || ''}" maxlength="20">
-              <div class="hint">Sert à vous trouver dans la barre de recherche. 3-20 caractères, lettres/chiffres/underscore.</div>
+              <div class="hint">Sert à vous trouver dans la recherche. 3-20 caractères, lettres minuscules/chiffres/underscore. <strong>Modifiable tous les 14 jours.</strong></div>
             </div>
 
             <div class="form-field">
@@ -821,7 +821,26 @@
 
       // Check username availability if changed
       if (newUsername !== user.username) {
+        // 14-day cooldown check
         const sb = window.SupabaseClient?.client;
+        const { data: profile } = await sb
+          .from('profiles')
+          .select('username_last_changed')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (profile?.username_last_changed) {
+          const lastChange = new Date(profile.username_last_changed).getTime();
+          const daysSince = (Date.now() - lastChange) / (1000 * 60 * 60 * 24);
+          if (daysSince < 14) {
+            const daysLeft = Math.ceil(14 - daysSince);
+            showFormError('settings-error', [`Vous pourrez changer votre nom d'utilisateur dans ${daysLeft} jour(s). Limite : un changement tous les 14 jours.`]);
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Enregistrer';
+            return;
+          }
+        }
+
         const { data: existing } = await sb
           .from('profiles')
           .select('id')
@@ -844,7 +863,10 @@
       // Username update via direct Supabase call (not in updateProfile signature)
       if (newUsername !== user.username) {
         const sb = window.SupabaseClient?.client;
-        const { error } = await sb.from('profiles').update({ username: newUsername }).eq('id', user.id);
+        const { error } = await sb.from('profiles').update({
+          username: newUsername,
+          username_last_changed: new Date().toISOString(),
+        }).eq('id', user.id);
         if (error) {
           console.error(error);
           showFormError('settings-error', ['Erreur lors de la mise à jour du nom d\'utilisateur']);

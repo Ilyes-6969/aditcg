@@ -326,7 +326,7 @@
         <h4>État</h4>
         <div class="filter-group">
           <label class="filter-option"><input type="checkbox"> Mint (M)</label>
-          <label class="filter-option"><input type="checkbox" checked> Near Mint (NM)</label>
+          <label class="filter-option"><input type="checkbox"> Near Mint (NM)</label>
           <label class="filter-option"><input type="checkbox"> Excellent (EX)</label>
           <label class="filter-option"><input type="checkbox"> PSA 10</label>
           <label class="filter-option"><input type="checkbox"> PSA 9</label>
@@ -350,9 +350,9 @@
         <div class="market-toolbar">
           <div class="results-count"><strong id="result-count">—</strong> cartes</div>
           <select class="sort-select" id="sort-select">
+            <option value="recent" selected>Plus récentes</option>
             <option value="price-desc">Prix décroissant</option>
             <option value="price-asc">Prix croissant</option>
-            <option value="recent">Plus récentes</option>
             <option value="popular">Plus populaires</option>
           </select>
         </div>
@@ -389,16 +389,20 @@
 <script src="app.js"></script>
 <script>
 (async () => {
+  // Wait for Auth to be ready
+  if (window.Auth?.init) await window.Auth.init();
+
   // STATE
   let allCards = [];
   let favSet = new Set();
   const filters = {
     series: new Set(),    // set IDs
     rarities: new Set(),  // 'common', 'uncommon', etc.
-    conditions: new Set(['NM']),
+    conditions: new Set(),  // empty by default - no filter
     prices: new Set(),    // 'lt10', '10-50', etc.
   };
-  let sort = 'price-desc';
+  let sort = 'recent'; // default: most recent sets first
+  let displayCount = 24;
 
   // Preload favorites (if logged in)
   if (window.Auth.isLoggedIn()) {
@@ -415,12 +419,30 @@
     const sets = await window.TCGdex.getAllSets();
     if (!sets || sets.length === 0) throw new Error('Pas de séries reçues');
 
+    // Filter out promo/McDonald's/special sets — we want real expansions
+    const isMainSet = (s) => {
+      const name = (s.name || '').toLowerCase();
+      // Exclude promo/McDo/special collections
+      if (name.includes('mcdonald')) return false;
+      if (name.includes('promo')) return false;
+      if (name.includes('black star')) return false;
+      if (name.includes('trainer kit')) return false;
+      if (name.includes('deck kit')) return false;
+      if (name.includes('starter')) return false;
+      if (name.includes('preconstructed')) return false;
+      // Sets need at least 50 cards to be a real expansion
+      if ((s.cardCount?.total || 0) < 30) return false;
+      return true;
+    };
+
+    const mainSets = sets.filter(isMainSet);
+
     // Sort by release date DESC (most recent first)
-    const sortedByDate = [...sets].sort((a, b) =>
+    const sortedByDate = [...mainSets].sort((a, b) =>
       (b.releaseDate || '').localeCompare(a.releaseDate || '')
     );
 
-    // Populate series filter with 15 most recent (not slice(-15) which gave oldest)
+    // Populate series filter with 15 most recent expansions
     const filterEl = document.getElementById('filter-series');
     const recent = sortedByDate.slice(0, 15);
     filterEl.innerHTML = recent.map(s => `
@@ -431,7 +453,7 @@
       </label>
     `).join('');
 
-    // Load cards from 5 most RECENT sets in PARALLEL (much faster than sequential)
+    // Load cards from 5 most RECENT real expansions in PARALLEL
     const topSets = sortedByDate.slice(0, 5);
     const results = await Promise.allSettled(
       topSets.map(set => window.TCGdex.getSetDetail(set.id).then(detail => ({ set, detail })))
@@ -511,8 +533,6 @@
     });
     return list;
   }
-
-  let displayCount = 24; // initial cards shown
 
   function render() {
     const filtered = applyFilters(allCards);
@@ -650,8 +670,7 @@
     filters.rarities.clear();
     filters.prices.clear();
     document.querySelectorAll('.sidebar input[type="checkbox"]').forEach(cb => {
-      const txt = cb.nextSibling?.textContent?.trim().toLowerCase() || '';
-      cb.checked = txt.includes('near mint');
+      cb.checked = false;
     });
     render();
   }

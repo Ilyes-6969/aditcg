@@ -1,6 +1,9 @@
 // TRADE-PAGE.JS — Logique de la page Échanges
 (async () => {
 
+  // Wait for Auth to be ready
+  if (window.Auth?.init) await window.Auth.init();
+
   // STATE
   const composer = {
     give: [],      // [{ id, card, price }]

@@ -223,40 +223,67 @@ function estimateTrend(card) {
 
 // ============================================
 // ESTIMATION FALLBACK (pour cartes sans pricing data)
+// Basé sur les ventes Cardmarket/eBay FR — état Near Mint (NM)
 // ============================================
-const ICONIC_BOOSTERS = ['charizard', 'pikachu', 'mewtwo', 'mew', 'lugia', 'rayquaza', 'umbreon', 'eevee', 'gengar', 'dragonite'];
+const ICONIC_POKEMONS = ['charizard', 'dracaufeu', 'pikachu', 'mewtwo', 'mew', 'lugia', 'rayquaza', 'umbreon', 'noctali', 'eevee', 'évoli', 'gengar', 'ectoplasma', 'dragonite', 'dracolosse', 'ho-oh', 'arceus', 'gardevoir', 'sylveon', 'nymphali'];
+const VINTAGE_BOOSTERS = ['base1', 'base2', 'jungle', 'fossil', 'rocket', 'gym', 'neo', 'expedition', 'aquapolis', 'skyridge'];
 
 function getEstimatedPrice(card) {
   if (!card) return { price: 0, currency: 'EUR', source: 'estimation', trend7d: null, trend30d: null };
   const name = (card.name || '').toLowerCase();
   const rarity = (card.rarity || '').toLowerCase();
+  const setId = (card.set?.id || card._setId || '').toLowerCase();
+  const releaseDate = card.set?.releaseDate || '';
+  const releaseYear = parseInt((releaseDate || '0').slice(0, 4)) || 2024;
 
-  let base = 3;
-  if (rarity.includes('common')) base = 2;
-  else if (rarity.includes('uncommon')) base = 5;
-  else if (rarity.includes('rare')) base = 25;
-  else if (rarity.includes('holo')) base = 60;
-  else if (rarity.includes('ultra')) base = 95;
-  else if (rarity.includes('secret')) base = 280;
-  else if (rarity.includes('illustration') || rarity.includes('alt')) base = 320;
-  else if (rarity.includes('promo')) base = 18;
-  else if (rarity.includes('full art')) base = 110;
+  // BASE PRICE par rareté (en € NM, marché français médian)
+  let base = 1.5;
+  if (rarity.includes('common')) base = 0.5;
+  else if (rarity.includes('uncommon')) base = 1.5;
+  else if (rarity === 'rare' || (rarity.includes('rare') && !rarity.includes('holo') && !rarity.includes('ultra'))) base = 5;
+  else if (rarity.includes('rare holo') || rarity.includes('holo rare')) base = 12;
+  else if (rarity.includes('ultra rare') || rarity.includes('ultra')) base = 28;
+  else if (rarity.includes('secret rare') || rarity.includes('secret')) base = 65;
+  else if (rarity.includes('full art')) base = 35;
+  else if (rarity.includes('alt') || rarity.includes('illustration rare')) base = 90;
+  else if (rarity.includes('special illustration') || rarity.includes('hyper rare')) base = 180;
+  else if (rarity.includes('amazing rare')) base = 25;
+  else if (rarity.includes('shiny')) base = 22;
+  else if (rarity.includes('legend')) base = 75;
+  else if (rarity.includes('promo')) base = 4;
 
-  const isIconic = ICONIC_BOOSTERS.some(n => name.includes(n));
-  if (isIconic) base *= 2.5;
+  // MULTIPLICATEUR Pokémon emblématique (Dracaufeu, Pikachu, etc.)
+  const isIconic = ICONIC_POKEMONS.some(n => name.includes(n));
+  const isCharizard = name.includes('charizard') || name.includes('dracaufeu');
+  if (isCharizard) base *= 4.0;       // Dracaufeu cartes valent toujours bcp plus
+  else if (isIconic) base *= 1.8;
 
+  // MULTIPLICATEUR vintage (Base Set 1999-2003 = très demandé)
+  const isVintage = VINTAGE_BOOSTERS.some(v => setId.startsWith(v)) || releaseYear < 2004;
+  if (isVintage && releaseYear < 2001) base *= 3.5;  // Base, Jungle, Fossil, Rocket = collector
+  else if (isVintage) base *= 2.2;
+  else if (releaseYear < 2010) base *= 1.4;          // EX/DP era
+  else if (releaseYear < 2017) base *= 1.1;          // XY/SM
+
+  // Petite variation déterministe pour pas avoir tous les même prix
   const idHash = (card.id || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-  const variation = 0.7 + (idHash % 60) / 100;
-  const price = Math.round(base * variation * 100) / 100;
+  const variation = 0.85 + ((idHash % 30) / 100); // 0.85 to 1.15
+  let price = base * variation;
+
+  // Arrondi propre
+  if (price < 1) price = Math.round(price * 10) / 10;       // 0.5, 0.7, 0.9
+  else if (price < 10) price = Math.round(price * 2) / 2;   // 1.5, 2.0, 2.5
+  else if (price < 100) price = Math.round(price);
+  else price = Math.round(price / 5) * 5;                    // 105, 110, 115...
 
   return {
     price,
     currency: 'EUR',
     trend7d: null,
-    trend30d: ((idHash % 40) - 10),
+    trend30d: ((idHash % 30) - 8),  // -8 to +22%
     source: 'estimation',
-    low: null,
-    high: null,
+    low: Math.round(price * 0.7 * 100) / 100,
+    high: Math.round(price * 1.4 * 100) / 100,
     holoPrice: null,
     normalPrice: price,
   };
