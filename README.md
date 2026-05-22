@@ -1,122 +1,131 @@
-# ADITCG v2 — Avec Supabase Backend
+# ADITCG — Plateforme de trading Pokémon TCG (Démo fonctionnelle complète)
 
-Cette version utilise un **vrai backend Supabase** au lieu de `localStorage`. Les utilisateurs s'inscrivent réellement, les données sont partagées entre utilisateurs, etc.
+Site multi-pages 100% fonctionnel en frontend pur (HTML + CSS + JavaScript vanille).
 
-## 📦 Contenu du dossier
+## ✨ Fonctionnalités
 
-- **HTML** : `index.html`, `series.html`, `set.html`, `carte.html`, `marche.html`, `profil.html`, `trade.html`
-- **CSS** : `styles.css`
-- **JS Backend** : `supabase-client.js`, `auth.js`, `storage.js`
-- **JS App** : `tcgdex-api.js`, `ui.js`, `app.js`, `profil-page.js`, `trade-page.js`
+### 🔐 Comptes utilisateur
+- **Inscription** : nom, email, username, mot de passe (min 6 caractères)
+- **Connexion** : avec validation des erreurs
+- **Session persistante** : reste connecté entre les visites
+- **Compte démo prêt à l'emploi** :
+  - Email : `demo@aditcg.fr`
+  - Mot de passe : `demo1234`
 
-## 🚀 Comment lancer le site
+> ⚠️ **Note de sécurité** : pour cette démo, les comptes sont stockés en `localStorage` du navigateur. Pour un site en production, un backend (Node.js + base de données + bcrypt + JWT) est nécessaire.
 
-### ⚠️ Important : tu ne peux PAS juste double-cliquer sur `index.html`
+### 📚 Collection persistante
+- Ajout / retrait de cartes à votre collection (toggle "+ Ajouter" sur chaque carte)
+- Statistiques calculées en temps réel (nombre, valeur, séries, performance 30j)
+- Compteur de complétion par série
+- Historique du portefeuille (12 derniers mois) avec graphique SVG dynamique
 
-Supabase refuse les requêtes qui viennent de `file://` pour des raisons de sécurité (CORS). Il te faut un serveur web.
+### ⭐ Système de favoris
+- Cœur cliquable sur chaque carte (page séries, marché, profil)
+- Section dédiée dans le profil
+- Persistance entre sessions
 
-### Option 1 — Test local rapide (recommandé pour développer)
+### 🔄 Système d'échanges (Trade)
+- Composer interactif : 4 emplacements par côté
+- Sélecteur de cartes : ma collection OU recherche TCGdex (debounced)
+- Calcul automatique des totaux et différentiel
+- Soumission d'échange enregistrée dans l'historique
+- Réponse aux échanges publics (3 propositions démo)
 
-Ouvre un terminal dans le dossier `aditcg-v2/` et lance :
+### 🛒 Marché
+- Filtres fonctionnels : séries, rareté, prix
+- Tri : prix ↑↓, plus récentes, popularité
+- Bouton **Acheter** inline avec confirmation modal
+- Bouton **Faire une offre** avec saisie de prix
 
-```bash
-# Si tu as Python (déjà installé sur Mac/Linux, à installer sur Windows)
-python3 -m http.server 8000
+### 🃏 Pages série
+- Toutes les cartes affichées avec leurs vraies images (TCGdex)
+- Boutons inline sur chaque carte : `♡ Favori` et `+ AJOUTER` à la collection
+- Filtres : Toutes / Possédées / Manquantes / Rares
+- Mise à jour en temps réel de la barre de progression
 
-# OU si tu as Node.js
-npx serve .
+### 📋 Page catalogue séries
+- 200+ séries depuis l'API TCGdex
+- Filtres : Toutes / Récentes / WOTC / Populaires
+- Vue **Grille** OU **Liste** (toggle fonctionnel)
+- Tri : date, nombre de cartes, alphabétique
+- Logo de chaque série affiché
+
+### 🌓 Dark mode
+- Toggle ☀/☾ dans la navbar
+- Persistance + détection préférence système
+- Anti-FOUC (pas de flash au chargement)
+
+### 💰 Prix réels Cardmarket
+- Intégration directe via TCGdex API
+- Badge "Source: Cardmarket" (vert) sur les cartes avec prix réel
+- Badge "Prix estimé" (gris) sur les cartes anciennes/rares non listées
+- Mise à jour quotidienne par TCGdex
+
+### 🔍 Recherche globale
+- Barre de recherche dans la navbar
+- Recherche live (300ms debounced) dans la base TCGdex
+- Résultats avec images et liens directs
+
+### 🔔 Notifications toast
+- Succès / erreur / avertissement / info
+- Auto-dismiss après 3.5s
+- Animation slide-in depuis la droite
+
+## 📁 Structure des fichiers
+
+```
+aditcg/
+├── index.html          ← Accueil
+├── series.html         ← Catalogue séries
+├── set.html            ← Détail d'une série (toutes ses cartes)
+├── carte.html          ← Détail d'une carte
+├── marche.html         ← Marché (achat)
+├── trade.html          ← Échanges
+├── profil.html         ← Profil + collection + portefeuille
+│
+├── styles.css          ← Design system complet (light + dark)
+│
+├── auth.js             ← Inscription, connexion, sessions
+├── storage.js          ← Collection, favoris, trades, activité, portefeuille
+├── ui.js               ← Modals, toasts, navbar, recherche
+├── tcgdex-api.js       ← Client API TCGdex + cache 6h
+├── app.js              ← Dark mode + effets visuels
+├── profil-page.js      ← Logique de la page profil
+├── trade-page.js       ← Logique de la page échanges
+│
+└── README.md           ← Ce fichier
 ```
 
-Puis ouvre http://localhost:8000 dans ton navigateur.
+## 🚀 Utilisation
 
-⚠️ **Avant de tester**, ajoute `http://localhost:8000` dans tes URLs autorisées Supabase :
-- Supabase Dashboard → ton projet → **Authentication** → **URL Configuration**
-- Ajoute `http://localhost:8000` dans **Site URL** et **Redirect URLs**
+1. Ouvrez `index.html` dans un navigateur moderne (Chrome, Firefox, Safari, Edge)
+2. Cliquez sur **"S'inscrire"** pour créer un compte, OU
+3. Cliquez sur **"Connexion"** et utilisez `demo@aditcg.fr` / `demo1234`
+4. Explorez les séries, ajoutez des cartes à votre collection, proposez des échanges !
 
-### Option 2 — Déploiement gratuit (pour partager le site)
+## 🔧 API utilisée
 
-#### Avec Vercel (le plus simple, 5 min)
+- **TCGdex** (`api.tcgdex.net/v2/fr`) — gratuit, sans clé API, inclut les prix Cardmarket réels
 
-1. Crée un compte sur https://vercel.com (gratuit, connexion GitHub)
-2. Clique **"Add New"** → **"Project"**
-3. **"Import Git Repository"** OU **"Upload"** → zippe ton dossier `aditcg-v2/` et upload
-4. Vercel détecte automatiquement que c'est un site statique
-5. Clique **"Deploy"**
-6. En 1 minute tu as ton URL `https://aditcg-xxx.vercel.app`
-7. **Important** : retourne dans Supabase → Authentication → URL Configuration et ajoute ton URL Vercel dans **Site URL** et **Redirect URLs**
+## 🎨 Design
 
-#### Avec Netlify (alternative)
+- **Palette Pokémon** : rouge `#dc0a2d`, bleu `#3b4cca`, jaune `#ffcb05`
+- **Style OpenSea** : cartes de collection avec floor/volume/variation
+- **Typo** : Fraunces (display), Manrope (body), JetBrains Mono (mono)
+- **Pokéball logo** : composant CSS pur (resilient au dark mode)
 
-1. Va sur https://netlify.com (gratuit)
-2. Drag & drop ton dossier `aditcg-v2/` sur l'écran d'accueil
-3. Site déployé en 30 secondes
-4. **Important** : ajoute ton URL Netlify dans Supabase → URL Configuration
+## 🛠 Pour aller plus loin
 
-## 🔧 Configuration Supabase requise
-
-Si tu n'as pas encore fait ces étapes :
-
-### 1. Tables (déjà fait avec `setup.sql`)
-- Va dans **Table Editor** → vérifie que tu as : `profiles`, `collections`, `favorites`, `listings`, `trades`, `activity`
-
-### 2. Confirmation email
-Pour tester rapidement sans confirmer les emails :
-- **Authentication** → **Providers** → **Email**
-- Décoche **"Confirm email"**
-- Sauvegarde
-
-**⚠️ À réactiver en production** pour éviter les faux comptes !
-
-### 3. URL Configuration
-- **Authentication** → **URL Configuration**
-- **Site URL** : ton URL de prod (ou `http://localhost:8000` pour tester)
-- **Redirect URLs** : ajoute toutes les URLs depuis lesquelles le site sera utilisé
-
-## ✅ Test du flow complet
-
-Une fois le site lancé :
-
-1. Ouvre le site dans le navigateur
-2. Clique **"S'inscrire"**
-3. Remplis le formulaire avec un vrai email
-4. Si "Confirm email" est désactivé → tu es connecté direct
-5. Va sur **Séries** → choisis une série → ajoute quelques cartes à ta collection (+ AJOUTER)
-6. Va sur **Collection** → tu dois voir les cartes ajoutées
-7. **Test ultime** : ouvre un autre navigateur (ou navigation privée), crée un autre compte, et vérifie que les deux profils sont **séparés** et **persistants**
-
-Si tout marche, **tu as un vrai backend qui scale**.
-
-## 🔑 Sécurité
-
-- La clé `anon public` (dans `supabase-client.js`) est OK à exposer publiquement
-- **Toute la sécurité est gérée par Row Level Security (RLS)** côté Supabase :
-  - Un user ne peut voir/modifier QUE ses propres collections/favoris/etc.
-  - Les profils sont publics (pour la recherche d'utilisateurs)
-  - Les listings actifs sont publics
-- Les policies sont définies dans le fichier `setup.sql` que tu as exécuté
-
-## 🐛 Si quelque chose ne marche pas
-
-Ouvre la console du navigateur (F12 → Console) et regarde :
-
-- **"Failed to fetch"** ou **CORS error** : ton URL n'est pas dans les Redirect URLs de Supabase
-- **"401 Unauthorized"** sur les requêtes : RLS bloque ta requête (vérifie que tu es bien connecté)
-- **"relation does not exist"** : le script SQL n'a pas tourné, refais-le
-
-## 📝 Limites actuelles
-
-Ce qui n'est PAS encore implémenté (volontairement, pour pas tout faire d'un coup) :
-
-- **Vrais paiements** (Stripe) — il faut un backend Node.js + clés Stripe
-- **Notifications email** lors d'une offre/échange — il faut un service comme Resend ou SendGrid
-- **Modération / signalement** d'annonces frauduleuses
-- **Système de notation** (avis sur les utilisateurs)
-- **Historique du portfolio quotidien** — il faut un cron ou un trigger Supabase
-- **Photo de profil custom** (upload d'image) — il faut Supabase Storage
-- **Réinitialisation de mot de passe** par email
-
-Ces features peuvent être ajoutées au fur et à mesure. Demande-moi quand tu seras prêt.
+Pour transformer cette démo en site en production, il faudrait :
+- **Backend Node.js/Express ou similaire** avec base de données (PostgreSQL/MongoDB)
+- **Authentification réelle** : bcrypt pour hash, JWT pour sessions
+- **API REST** : `/api/users`, `/api/cards`, `/api/trades`, etc.
+- **Paiements** : intégration Stripe (cartes bancaires) ou PayPal
+- **Stockage cloud** : AWS S3 pour les images d'utilisateur
+- **Notifications email** : SendGrid / Postmark / Mailgun
+- **Modération** : système de signalement + admin panel
 
 ---
 
-© 2026 ADITCG — Plateforme indépendante de revente entre particuliers
+© 2026 ADITCG · Démo construite par Claude (Anthropic)

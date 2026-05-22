@@ -16,7 +16,7 @@
 <title>Carte — ADITCG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,800;0,900;1,400&family=Inter:wght@400;500;600;700;800;900&family=Fraunces:ital,opsz,wght@1,9..144,300;1,9..144,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,800;0,900;1,400&family=Inter:wght@400;500;600;700;800;900&family=Fraunces:ital,opsz,wght@1,9..144,300;1,9..144,400&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <style>
   .page-head {
@@ -353,8 +353,6 @@
     .pokemon-grid { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase-client.js"></script>
 </head>
 <body>
 
@@ -425,7 +423,7 @@
       <div class="footer-col"><h5>Compte</h5><ul><li><a href="profil.html">Collection</a></li></ul></div>
       <div class="footer-col"><h5>Support</h5><ul><li><a href="#">FAQ</a></li></ul></div>
     </div>
-    <div class="footer-bottom"><div>© 2026 ADITCG · Plateforme indépendante de revente entre particuliers · Non affiliée à Nintendo, The Pokémon Company ou Game Freak. Pokémon™ et tous les noms de personnages associés sont des marques déposées de Nintendo / Game Freak / The Pokémon Company.</div><div>Données : TCGdex</div></div>
+    <div class="footer-bottom"><div>© 2026 ADITCG</div><div>Données : TCGdex</div></div>
   </div>
 </footer>
 
@@ -436,9 +434,6 @@
 <script src="app.js"></script>
 <script>
 (async () => {
-  // Wait for Auth to be ready
-  if (window.Auth?.init) await window.Auth.init();
-
   const params = new URLSearchParams(window.location.search);
   const cardId = params.get('id');
 
@@ -579,13 +574,14 @@
         const yMin = minV - pad;
         const yMax = maxV + pad;
 
-        const W = 600, H = 180;
-        const xs = points.map((_, i) => (i / (points.length - 1)) * (W - 40) + 20);
-        const ys = points.map(p => H - 20 - ((p.value - yMin) / (yMax - yMin)) * (H - 40));
+        const xs = points.map((_, i) => (i / (points.length - 1)) * 560 + 20);
+        const ys = points.map(p => 160 - ((p.value - yMin) / (yMax - yMin)) * 140 + 10);
 
         const linePath = points.map((_, i) => `${i === 0 ? 'M' : 'L'}${xs[i]},${ys[i]}`).join(' ');
-        const fillPath = `M${xs[0]},${H - 10} L${xs.map((x, i) => `${x},${ys[i]}`).join(' L')} L${xs[xs.length-1]},${H - 10} Z`;
-        const dots = points.map((p, i) => `<circle cx="${xs[i]}" cy="${ys[i]}" r="4" fill="#dc0a2d" stroke="#ffffff" stroke-width="2" class="chart-dot" data-idx="${i}"/>`).join('');
+        const fillPath = `M${xs[0]},170 L${xs.map((x, i) => `${x},${ys[i]}`).join(' L')} L${xs[xs.length-1]},170 Z`;
+
+        const dots = points.map((p, i) => `<circle cx="${xs[i]}" cy="${ys[i]}" r="4" fill="var(--red)" stroke="var(--white)" stroke-width="2"/>`).join('');
+        const labels = points.map((p, i) => `<text x="${xs[i]}" y="${Math.max(ys[i] - 12, 14)}" text-anchor="middle" font-family="JetBrains Mono" font-size="10" font-weight="700" fill="var(--ink)">${window.TCGdex.formatPrice(p.value)}</text>`).join('');
 
         const svg = document.querySelector('.price-chart');
         if (svg) {
@@ -599,59 +595,8 @@
             <path d="${fillPath}" fill="url(#chartFill)"/>
             <path d="${linePath}" fill="none" stroke="#dc0a2d" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
             ${dots}
-            <line class="chart-cursor" x1="0" y1="0" x2="0" y2="${H}" stroke="rgba(220,10,45,0.3)" stroke-width="1" stroke-dasharray="3,3" style="opacity:0; pointer-events:none;"/>
-            <circle class="chart-hover-dot" r="6" fill="#dc0a2d" stroke="#ffffff" stroke-width="3" style="opacity:0; pointer-events:none;"/>
+            ${labels}
           `;
-
-          // Add hover interaction
-          const tooltip = document.createElement('div');
-          tooltip.className = 'chart-tooltip';
-          tooltip.style.cssText = 'position:absolute; background:#1a1a2e; color:#fff; padding:8px 12px; border-radius:8px; font-size:12px; pointer-events:none; opacity:0; transition:opacity 0.15s; box-shadow:0 6px 16px rgba(0,0,0,0.3); z-index:5; white-space:nowrap;';
-          svg.parentElement.style.position = 'relative';
-          svg.parentElement.appendChild(tooltip);
-
-          const cursor = svg.querySelector('.chart-cursor');
-          const hoverDot = svg.querySelector('.chart-hover-dot');
-
-          svg.style.cursor = 'crosshair';
-          svg.addEventListener('mousemove', (e) => {
-            const rect = svg.getBoundingClientRect();
-            const xRatio = (e.clientX - rect.left) / rect.width;
-            const svgX = xRatio * W;
-
-            // Find closest point
-            let closestIdx = 0;
-            let closestDist = Math.abs(xs[0] - svgX);
-            for (let i = 1; i < xs.length; i++) {
-              const d = Math.abs(xs[i] - svgX);
-              if (d < closestDist) { closestDist = d; closestIdx = i; }
-            }
-
-            const px = xs[closestIdx];
-            const py = ys[closestIdx];
-            const point = points[closestIdx];
-
-            cursor.setAttribute('x1', px);
-            cursor.setAttribute('x2', px);
-            cursor.style.opacity = '1';
-            hoverDot.setAttribute('cx', px);
-            hoverDot.setAttribute('cy', py);
-            hoverDot.style.opacity = '1';
-
-            // Tooltip position in DOM coordinates
-            const tooltipX = (px / W) * rect.width;
-            const tooltipY = (py / H) * rect.height;
-            tooltip.innerHTML = '<strong style="font-family:&apos;Playfair Display&apos;,serif; font-size:14px;">' + window.TCGdex.formatPrice(point.value) + '</strong><br><span style="opacity:0.7; font-size:10px; text-transform:uppercase; letter-spacing:0.1em;">' + (point.label === 'Now' ? "Aujourd'hui" : 'Il y a ' + point.label) + '</span>';
-            tooltip.style.opacity = '1';
-            tooltip.style.left = (tooltipX + 12) + 'px';
-            tooltip.style.top = (tooltipY - 20) + 'px';
-          });
-
-          svg.addEventListener('mouseleave', () => {
-            cursor.style.opacity = '0';
-            hoverDot.style.opacity = '0';
-            tooltip.style.opacity = '0';
-          });
         }
       }
     }
@@ -685,19 +630,18 @@
   }
 
   // After render, attach button handlers
-  setTimeout(async () => {
+  setTimeout(() => {
     const card = window.__currentCard;
     if (!card) return;
 
     // Favori button
     const favBtn = document.getElementById('btn-fav');
     if (favBtn) {
-      const isFav = await window.Storage.isFavorite(card.id);
+      const isFav = window.Storage.isFavorite(card.id);
       favBtn.innerHTML = isFav ? '♥ Favori' : '♡ Favori';
       favBtn.style.color = isFav ? 'var(--red)' : '';
-      favBtn.addEventListener('click', async () => {
-        if (!window.Auth.isLoggedIn()) { window.UI.openLogin(); return; }
-        const nowFav = await window.Storage.toggleFavorite(card.id);
+      favBtn.addEventListener('click', () => {
+        const nowFav = window.Storage.toggleFavorite(card.id);
         favBtn.innerHTML = nowFav ? '♥ Favori' : '♡ Favori';
         favBtn.style.color = nowFav ? 'var(--red)' : '';
         window.UI.toast(nowFav ? 'Ajouté aux favoris ♥' : 'Retiré des favoris', nowFav ? 'success' : 'info');
@@ -732,16 +676,15 @@
     // Add to Collection button (added below price hero)
     const priceHero = document.querySelector('.price-hero');
     if (priceHero && !document.getElementById('collection-toggle-btn')) {
-      const isOwned = await window.Storage.isOwned(card.id);
+      const isOwned = window.Storage.isOwned(card.id);
       const collBtn = document.createElement('button');
       collBtn.id = 'collection-toggle-btn';
       collBtn.className = isOwned ? 'btn btn-yellow' : 'btn btn-ghost';
       collBtn.style.width = '100%';
       collBtn.style.marginTop = '10px';
       collBtn.innerHTML = isOwned ? '✓ Dans ma collection' : '+ Ajouter à ma collection';
-      collBtn.addEventListener('click', async () => {
-        if (!window.Auth.isLoggedIn()) { window.UI.openLogin(); return; }
-        const nowOwned = await window.Storage.toggleOwned(card.id);
+      collBtn.addEventListener('click', () => {
+        const nowOwned = window.Storage.toggleOwned(card.id);
         collBtn.className = nowOwned ? 'btn btn-yellow' : 'btn btn-ghost';
         collBtn.style.width = '100%';
         collBtn.style.marginTop = '10px';
@@ -766,8 +709,8 @@
           confirmText: 'Confirmer l\'achat',
         });
         if (ok) {
-          await window.Storage.addToCollection(card.id);
-          await window.Storage.addActivity('listing', `Achat : ${card.name} pour ${window.TCGdex.formatPrice(priceData.price)}`);
+          window.Storage.addToCollection(card.id);
+          window.Storage.addActivity('listing', `Achat : ${card.name} pour ${window.TCGdex.formatPrice(priceData.price)}`);
           window.UI.toast('Achat confirmé ! Carte ajoutée à votre collection.', 'success', 4000);
         }
       });
@@ -806,13 +749,13 @@
             </div>
           </div>
         `);
-        document.getElementById('offer-submit').addEventListener('click', async () => {
+        document.getElementById('offer-submit').addEventListener('click', () => {
           const amount = parseFloat(document.getElementById('offer-amount').value);
           if (!amount || amount <= 0) {
             window.UI.toast('Veuillez entrer un montant valide', 'error');
             return;
           }
-          await window.Storage.addActivity('trade', `Offre envoyée : ${card.name} à ${amount}€`);
+          window.Storage.addActivity('trade', `Offre envoyée : ${card.name} à ${amount}€`);
           window.UI.closeModal();
           window.UI.toast('Offre envoyée au vendeur !', 'success');
         });

@@ -1,302 +1,233 @@
 // ============================================
-// STORAGE.JS — Données persistantes via Supabase
+// STORAGE.JS — Données persistantes utilisateur
 // Collections, favoris, échanges, activité
 // ============================================
 
-(function() {
-  'use strict';
+const DATA_KEY_PREFIX = 'aditcg_userdata_';
 
-  // Already loaded? Skip
-  if (window.Storage && window.Storage.getCollection) return;
-
-  const _cache = {
-    collection: null,    // [{ id, card_id, condition, quantity }]
-    favorites: null,     // [{ id, card_id }]
-    trades: null,
-    activity: null,
-    listings: null,
-};
-
-function invalidate(key) {
-  if (key) _cache[key] = null;
-  else Object.keys(_cache).forEach(k => _cache[k] = null);
+function getUserKey() {
+  const user = window.Auth?.getCurrentUser();
+  if (!user) return DATA_KEY_PREFIX + 'guest';
+  return DATA_KEY_PREFIX + user.id;
 }
 
-function getUserId() {
-  return window.Auth?.getCurrentUser()?.id || null;
+function getUserData() {
+  try {
+    const raw = localStorage.getItem(getUserKey());
+    if (!raw) return getDefaultData();
+    return { ...getDefaultData(), ...JSON.parse(raw) };
+  } catch {
+    return getDefaultData();
+  }
+}
+
+function saveUserData(data) {
+  localStorage.setItem(getUserKey(), JSON.stringify(data));
+}
+
+function getDefaultData() {
+  return {
+    collection: [], // tableau d'IDs de cartes possédées
+    favorites: [],  // IDs cartes
+    listings: [],   // [{ cardId, type:'sale'|'trade', price, condition, createdAt }]
+    trades: [],     // [{ id, give:[ids], receive:[ids], partner, status, createdAt }]
+    activity: [],   // [{ type, message, createdAt }]
+    portfolio: {}, // { 'YYYY-MM-DD': totalValue }
+  };
 }
 
 // ============================================
 // COLLECTION
 // ============================================
 
-async function getCollection() {
-  if (_cache.collection) return _cache.collection.map(c => c.card_id);
-  const userId = getUserId();
-  if (!userId) return [];
-  const sb = window.SupabaseClient?.client;
-  const { data, error } = await sb
-    .from('collections')
-    .select('id, card_id, condition, quantity, added_at')
-    .eq('user_id', userId);
-  if (error) { console.warn(error); return []; }
-  _cache.collection = data || [];
-  return _cache.collection.map(c => c.card_id);
+function getCollection() { return getUserData().collection; }
+
+function isOwned(cardId) {
+  return getUserData().collection.includes(cardId);
 }
 
-async function isOwned(cardId) {
-  const list = await getCollection();
-  return list.includes(cardId);
-}
-
-async function addToCollection(cardId, options = {}) {
-  const userId = getUserId();
-  if (!userId) return false;
-  const sb = window.SupabaseClient?.client;
-  const { error } = await sb.from('collections').insert({
-    user_id: userId,
-    card_id: cardId,
-    condition: options.condition || 'NM',
-    quantity: options.quantity || 1,
-  });
-  if (error && !error.message.includes('duplicate')) {
-    console.error('addToCollection:', error);
-    return false;
+function toggleOwned(cardId) {
+  const data = getUserData();
+  const idx = data.collection.indexOf(cardId);
+  if (idx >= 0) {
+    data.collection.splice(idx, 1);
+    addActivity('collection', `Carte retirée de la collection : ${cardId}`);
+  } else {
+    data.collection.push(cardId);
+    addActivity('collection', `Carte ajoutée : ${cardId}`);
   }
-  invalidate('collection');
-  await addActivity('collection', `Carte ajoutée : ${cardId}`);
-  return true;
+  saveUserData(data);
+  return data.collection.includes(cardId);
 }
 
-async function removeFromCollection(cardId) {
-  const userId = getUserId();
-  if (!userId) return false;
-  const sb = window.SupabaseClient?.client;
-  const { error } = await sb.from('collections')
-    .delete()
-    .eq('user_id', userId)
-    .eq('card_id', cardId);
-  if (error) { console.error(error); return false; }
-  invalidate('collection');
-  await addActivity('collection', `Carte retirée : ${cardId}`);
-  return true;
-}
-
-async function toggleOwned(cardId) {
-  const owned = await isOwned(cardId);
-  if (owned) {
-    await removeFromCollection(cardId);
-    return false;
+function addToCollection(cardId) {
+  const data = getUserData();
+  if (!data.collection.includes(cardId)) {
+    data.collection.push(cardId);
+    addActivity('collection', `Carte ajoutée : ${cardId}`);
+    saveUserData(data);
+    return true;
   }
-  await addToCollection(cardId);
-  return true;
+  return false;
+}
+
+function removeFromCollection(cardId) {
+  const data = getUserData();
+  const idx = data.collection.indexOf(cardId);
+  if (idx >= 0) {
+    data.collection.splice(idx, 1);
+    saveUserData(data);
+    return true;
+  }
+  return false;
 }
 
 // ============================================
 // FAVORITES
 // ============================================
 
-async function getFavorites() {
-  if (_cache.favorites) return _cache.favorites.map(f => f.card_id);
-  const userId = getUserId();
-  if (!userId) return [];
-  const sb = window.SupabaseClient?.client;
-  const { data, error } = await sb
-    .from('favorites')
-    .select('id, card_id, added_at')
-    .eq('user_id', userId);
-  if (error) { console.warn(error); return []; }
-  _cache.favorites = data || [];
-  return _cache.favorites.map(f => f.card_id);
-}
+function getFavorites() { return getUserData().favorites; }
 
-async function isFavorite(cardId) {
-  const list = await getFavorites();
-  return list.includes(cardId);
-}
+function isFavorite(cardId) { return getUserData().favorites.includes(cardId); }
 
-async function toggleFavorite(cardId) {
-  const userId = getUserId();
-  if (!userId) return false;
-  const sb = window.SupabaseClient?.client;
-  const isFav = await isFavorite(cardId);
-
-  if (isFav) {
-    await sb.from('favorites')
-      .delete()
-      .eq('user_id', userId)
-      .eq('card_id', cardId);
-    invalidate('favorites');
-    return false;
-  } else {
-    await sb.from('favorites').insert({ user_id: userId, card_id: cardId });
-    invalidate('favorites');
-    return true;
-  }
+function toggleFavorite(cardId) {
+  const data = getUserData();
+  const idx = data.favorites.indexOf(cardId);
+  if (idx >= 0) data.favorites.splice(idx, 1);
+  else data.favorites.push(cardId);
+  saveUserData(data);
+  return data.favorites.includes(cardId);
 }
 
 // ============================================
 // LISTINGS (annonces de vente/échange)
 // ============================================
 
-async function getListings(filter = {}) {
-  const sb = window.SupabaseClient?.client;
-  let q = sb.from('listings').select('*').eq('status', 'active');
-  if (filter.userId) q = q.eq('seller_id', filter.userId);
-  if (filter.cardId) q = q.eq('card_id', filter.cardId);
-  const { data, error } = await q.order('created_at', { ascending: false });
-  if (error) { console.warn(error); return []; }
-  return data || [];
+function getListings() { return getUserData().listings; }
+
+function addListing({ cardId, type, price, condition }) {
+  const data = getUserData();
+  data.listings.push({
+    id: 'l_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+    cardId, type, price, condition: condition || 'NM',
+    createdAt: Date.now(),
+  });
+  addActivity('listing', `Mise en ${type === 'sale' ? 'vente' : 'échange'} : ${cardId}`);
+  saveUserData(data);
 }
 
-async function addListing({ cardId, type, price, condition, description }) {
-  const userId = getUserId();
-  if (!userId) return false;
-  const sb = window.SupabaseClient?.client;
-  const { data, error } = await sb.from('listings').insert({
-    seller_id: userId,
-    card_id: cardId,
-    type: type || 'sale',
-    price: price || null,
-    condition: condition || 'NM',
-    description: description || null,
-    status: 'active',
-  }).select().single();
-  if (error) { console.error(error); return false; }
-  await addActivity('listing', `Mise en ${type === 'sale' ? 'vente' : 'échange'} : ${cardId}`);
-  return data;
-}
-
-async function removeListing(listingId) {
-  const userId = getUserId();
-  if (!userId) return false;
-  const sb = window.SupabaseClient?.client;
-  const { error } = await sb.from('listings')
-    .update({ status: 'cancelled' })
-    .eq('id', listingId)
-    .eq('seller_id', userId);
-  if (error) { console.error(error); return false; }
-  return true;
+function removeListing(listingId) {
+  const data = getUserData();
+  data.listings = data.listings.filter(l => l.id !== listingId);
+  saveUserData(data);
 }
 
 // ============================================
 // TRADES
 // ============================================
 
-async function getTrades() {
-  if (_cache.trades) return _cache.trades;
-  const userId = getUserId();
-  if (!userId) return [];
-  const sb = window.SupabaseClient?.client;
-  const { data, error } = await sb
-    .from('trades')
-    .select('*')
-    .or(`proposer_id.eq.${userId},recipient_id.eq.${userId}`)
-    .order('created_at', { ascending: false });
-  if (error) { console.warn(error); return []; }
-  _cache.trades = data || [];
-  return _cache.trades;
+function getTrades() { return getUserData().trades; }
+
+function createTrade({ give, receive, partner, message }) {
+  const data = getUserData();
+  const trade = {
+    id: 't_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+    give, receive, partner: partner || 'Communauté', message: message || '',
+    status: 'pending', // pending | accepted | rejected | completed
+    createdAt: Date.now(),
+  };
+  data.trades.push(trade);
+  addActivity('trade', `Échange proposé à ${trade.partner}`);
+  saveUserData(data);
+  return trade;
 }
 
-async function createTrade({ give, receive, partner, recipientId, message }) {
-  const userId = getUserId();
-  if (!userId) return null;
-  const sb = window.SupabaseClient?.client;
-
-  // Normalize: arrays of card IDs OR { card_id, condition } objects
-  const normGive = give.map(g => typeof g === 'string' ? { card_id: g, condition: 'NM' } : g);
-  const normRecv = receive.map(r => typeof r === 'string' ? { card_id: r, condition: 'NM' } : r);
-
-  const { data, error } = await sb.from('trades').insert({
-    proposer_id: userId,
-    recipient_id: recipientId || null,
-    give_cards: normGive,
-    receive_cards: normRecv,
-    message: message || null,
-    status: 'pending',
-  }).select().single();
-
-  if (error) { console.error(error); return null; }
-  invalidate('trades');
-  await addActivity('trade', `Échange proposé${partner ? ' à ' + partner : ''}`);
-  return data;
-}
-
-async function updateTradeStatus(tradeId, status) {
-  const userId = getUserId();
-  if (!userId) return false;
-  const sb = window.SupabaseClient?.client;
-  const { error } = await sb.from('trades')
-    .update({ status })
-    .eq('id', tradeId);
-  if (error) { console.error(error); return false; }
-  invalidate('trades');
-  await addActivity('trade', `Échange ${status === 'accepted' ? 'accepté' : status === 'rejected' ? 'refusé' : 'mis à jour'}`);
-  return true;
+function updateTradeStatus(tradeId, status) {
+  const data = getUserData();
+  const trade = data.trades.find(t => t.id === tradeId);
+  if (trade) {
+    trade.status = status;
+    addActivity('trade', `Échange ${status === 'accepted' ? 'accepté' : status === 'rejected' ? 'refusé' : 'mis à jour'}`);
+    saveUserData(data);
+  }
 }
 
 // ============================================
 // ACTIVITY
 // ============================================
 
-async function getActivity() {
-  if (_cache.activity) return _cache.activity;
-  const userId = getUserId();
-  if (!userId) return [];
-  const sb = window.SupabaseClient?.client;
-  const { data, error } = await sb
-    .from('activity')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(50);
-  if (error) { console.warn(error); return []; }
-  _cache.activity = (data || []).map(a => ({
-    type: a.type,
-    message: a.message,
-    createdAt: new Date(a.created_at).getTime(),
-  }));
-  return _cache.activity;
-}
+function getActivity() { return getUserData().activity; }
 
-async function addActivity(type, message, metadata) {
-  const userId = getUserId();
-  if (!userId) return;
-  const sb = window.SupabaseClient?.client;
-  await sb.from('activity').insert({
-    user_id: userId,
-    type,
-    message,
-    metadata: metadata || null,
+function addActivity(type, message) {
+  const data = getUserData();
+  data.activity.unshift({
+    type, message,
+    createdAt: Date.now(),
   });
-  invalidate('activity');
+  // Garde uniquement les 100 dernières
+  if (data.activity.length > 100) data.activity = data.activity.slice(0, 100);
+  saveUserData(data);
 }
 
 // ============================================
-// PORTFOLIO (calculé en temps réel à partir de la collection)
-// On stocke pas l'historique pour l'instant — pourra être ajouté plus tard
-// avec une table dédiée ou un cron Supabase
+// PORTFOLIO (snapshot quotidien de la valeur)
 // ============================================
 
-async function recordPortfolioValue(value) {
-  // No-op for now — would require a portfolio_history table
+function recordPortfolioValue(value) {
+  const data = getUserData();
+  const today = new Date().toISOString().slice(0, 10);
+  data.portfolio[today] = value;
+  // Garde uniquement les 12 derniers mois
+  const cutoff = Date.now() - 365 * 24 * 60 * 60 * 1000;
+  const cutoffStr = new Date(cutoff).toISOString().slice(0, 10);
+  Object.keys(data.portfolio).forEach(d => {
+    if (d < cutoffStr) delete data.portfolio[d];
+  });
+  saveUserData(data);
 }
 
-async function getPortfolioHistory() {
-  return []; // Empty — chart will show "Pas encore assez de données"
+function getPortfolioHistory() {
+  const p = getUserData().portfolio;
+  return Object.entries(p)
+    .map(([date, value]) => ({ date, value }))
+    .sort((a, b) => a.date.localeCompare(b.date));
 }
 
 // ============================================
-// SEED DEMO DATA — n'est plus appelé avec Supabase
-// (les vrais users s'inscrivent et commencent vide)
+// SEED DEMO DATA (pour avoir une démo riche dès la 1re visite)
 // ============================================
+
 function seedDemoData() {
-  // No-op
-}
+  const data = getUserData();
+  if (data.collection.length > 0) return; // déjà seedée
 
-// ============================================
-// EXPORT
-// ============================================
+  const demoCards = [
+    'base1-4', 'base1-15', 'base1-25', 'base1-11',
+    'sv03.5-9', 'sv03.5-25', 'sv03.5-150',
+    'swsh4-44', 'swsh4-29',
+    'neo1-9', 'xy12-12', 'swsh7-150',
+  ];
+  data.collection = demoCards;
+  data.favorites = ['base1-4', 'sv03.5-9', 'neo1-9'];
+
+  // Activité initiale
+  data.activity = [
+    { type: 'collection', message: 'Bienvenue sur ADITCG !', createdAt: Date.now() },
+    { type: 'system', message: 'Compte démo créé avec 12 cartes', createdAt: Date.now() - 3600000 },
+  ];
+
+  // Portfolio mock — courbe ascendante sur 12 mois
+  const today = new Date();
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(today);
+    d.setMonth(d.getMonth() - i);
+    const key = d.toISOString().slice(0, 10);
+    const base = 800 + (11 - i) * 120 + Math.random() * 100;
+    data.portfolio[key] = Math.round(base);
+  }
+
+  saveUserData(data);
+}
 
 window.Storage = {
   getCollection, isOwned, toggleOwned, addToCollection, removeFromCollection,
@@ -306,7 +237,4 @@ window.Storage = {
   getActivity, addActivity,
   recordPortfolioValue, getPortfolioHistory,
   seedDemoData,
-  invalidate,
 };
-
-})();

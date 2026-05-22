@@ -193,7 +193,6 @@
       font-weight: 800;
       font-size: 13px;
       color: #1a1a2e;
-      overflow: hidden;
     }
     .nav-user-name {
       font-weight: 700;
@@ -447,25 +446,16 @@
     document.getElementById('login-email').focus();
   }
 
-  async function handleLogin() {
+  function handleLogin() {
     const email = document.getElementById('login-email').value;
     const password = document.getElementById('login-password').value;
-    const submitBtn = document.getElementById('login-submit');
-    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Connexion…'; }
-    try {
-      const res = await window.Auth.login({ email, password });
-      if (res.success) {
-        closeModal();
-        toast(`Bienvenue, ${res.user.name} !`, 'success');
-        setTimeout(() => window.location.reload(), 400);
-      } else {
-        showFormError('login-error', res.errors);
-      }
-    } catch (e) {
-      console.error('Login error:', e);
-      showFormError('login-error', [e.message || 'Erreur inconnue']);
-    } finally {
-      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Se connecter'; }
+    const res = window.Auth.login({ email, password });
+    if (res.success) {
+      closeModal();
+      toast(`Bienvenue, ${res.user.name} !`, 'success');
+      setTimeout(() => window.location.reload(), 400);
+    } else {
+      showFormError('login-error', res.errors);
     }
   }
 
@@ -515,29 +505,20 @@
     document.getElementById('signup-name').focus();
   }
 
-  async function handleSignup() {
+  function handleSignup() {
     const data = {
       name: document.getElementById('signup-name').value,
       username: document.getElementById('signup-username').value,
       email: document.getElementById('signup-email').value,
       password: document.getElementById('signup-password').value,
     };
-    const submitBtn = document.getElementById('signup-submit');
-    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Création…'; }
-    try {
-      const res = await window.Auth.signup(data);
-      if (res.success) {
-        closeModal();
-        toast(`Compte créé ! Bienvenue ${res.user.name} 🎉`, 'success');
-        setTimeout(() => window.location.reload(), 600);
-      } else {
-        showFormError('signup-error', res.errors);
-      }
-    } catch (e) {
-      console.error('Signup error:', e);
-      showFormError('signup-error', [e.message || 'Erreur inconnue']);
-    } finally {
-      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Créer mon compte'; }
+    const res = window.Auth.signup(data);
+    if (res.success) {
+      closeModal();
+      toast(`Compte créé ! Bienvenue ${res.user.name} 🎉`, 'success');
+      setTimeout(() => window.location.reload(), 600);
+    } else {
+      showFormError('signup-error', res.errors);
     }
   }
 
@@ -546,14 +527,6 @@
     if (!el) return;
     el.style.display = 'block';
     el.className = 'form-error';
-
-    // Defensive: ensure errors is a non-empty array of strings
-    if (!Array.isArray(errors) || errors.length === 0) {
-      errors = ['Une erreur est survenue. Vérifie la console (F12) pour plus de détails.'];
-    }
-    errors = errors.filter(e => e).map(e => String(e));
-    if (errors.length === 0) errors = ['Erreur inconnue'];
-
     el.innerHTML = errors.length === 1
       ? errors[0]
       : `Veuillez corriger :<ul>${errors.map(e => `<li>${e}</li>`).join('')}</ul>`;
@@ -614,417 +587,6 @@
   }
 
   // ============================================
-  // SETTINGS MODAL (avatar customization)
-  // ============================================
-
-  // Pokémon avatars: official artwork (PokéAPI sprites) — clean centered headshots
-  // Source: https://github.com/PokeAPI/sprites (free, official Nintendo artwork)
-  const POKEMON_AVATARS = [
-    { id: 'pikachu',    name: 'Pikachu',     dexNum: 25 },
-    { id: 'charizard',  name: 'Dracaufeu',   dexNum: 6 },
-    { id: 'mewtwo',     name: 'Mewtwo',      dexNum: 150 },
-    { id: 'blastoise',  name: 'Tortank',     dexNum: 9 },
-    { id: 'venusaur',   name: 'Florizarre',  dexNum: 3 },
-    { id: 'eevee',      name: 'Évoli',       dexNum: 133 },
-    { id: 'snorlax',    name: 'Ronflex',     dexNum: 143 },
-    { id: 'gengar',     name: 'Ectoplasma',  dexNum: 94 },
-    { id: 'gyarados',   name: 'Léviator',    dexNum: 130 },
-    { id: 'dragonite',  name: 'Dracolosse',  dexNum: 149 },
-    { id: 'mew',        name: 'Mew',         dexNum: 151 },
-    { id: 'lugia',      name: 'Lugia',       dexNum: 249 },
-    { id: 'hooh',       name: 'Ho-Oh',       dexNum: 250 },
-    { id: 'rayquaza',   name: 'Rayquaza',    dexNum: 384 },
-    { id: 'lucario',    name: 'Lucario',     dexNum: 448 },
-    { id: 'umbreon',    name: 'Noctali',     dexNum: 197 },
-    { id: 'espeon',     name: 'Mentali',     dexNum: 196 },
-    { id: 'sylveon',    name: 'Nymphali',    dexNum: 700 },
-    { id: 'greninja',   name: 'Amphinobi',   dexNum: 658 },
-    { id: 'arceus',     name: 'Arceus',      dexNum: 493 },
-    { id: 'garchomp',   name: 'Carchacrok',  dexNum: 445 },
-    { id: 'tyranitar',  name: 'Tyranocif',   dexNum: 248 },
-    { id: 'metagross',  name: 'Métalosse',   dexNum: 376 },
-    { id: 'gardevoir',  name: 'Gardevoir',   dexNum: 282 },
-  ];
-
-  // Build URL from dex number — instant, no network call needed
-  function getPokemonAvatarUrl(pokemonAvatarId) {
-    const av = POKEMON_AVATARS.find(p => p.id === pokemonAvatarId);
-    if (!av) return null;
-    // Official artwork from PokéAPI (free, hosted on GitHub)
-    return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${av.dexNum}.png`;
-  }
-
-  async function openSettings() {
-    const user = window.Auth.getCurrentUser();
-    if (!user) {
-      openLogin();
-      return;
-    }
-
-    openModal(`
-      <div class="modal" style="max-width: 560px;">
-        <div class="modal-close">×</div>
-        <div class="modal-header">
-          <div class="pokeball-mini"></div>
-          <h2>Paramètres du <span class="accent">profil</span></h2>
-          <p>Personnalisez votre photo de profil et vos informations.</p>
-        </div>
-        <div class="modal-body">
-
-          <div style="margin-bottom: 24px;">
-            <div style="font-size: 11px; font-weight: 700; color: var(--gray-text); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 14px;">Avatar</div>
-
-            <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 18px; padding: 14px; background: var(--gray-bg); border-radius: 12px;">
-              <div id="avatar-preview" style="width: 64px; height: 64px; border-radius: 50%; background: var(--yellow); border: 3px solid #1a1a2e; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 800; font-size: 28px; color: #1a1a2e; flex-shrink: 0; overflow: hidden;"></div>
-              <div style="flex: 1;">
-                <div style="font-weight: 700; font-size: 15px;" id="avatar-label">Avatar par défaut</div>
-                <div style="font-size: 12px; color: var(--gray-text);">Cliquez sur un Pokémon pour le choisir</div>
-              </div>
-            </div>
-
-            <div style="margin-bottom: 12px; font-size: 13px; font-weight: 600;">Pokémon emblématiques</div>
-            <div id="avatar-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; max-height: 240px; overflow-y: auto; padding: 4px;"></div>
-
-            <div style="margin-top: 16px; font-size: 13px;">
-              <button class="btn btn-ghost btn-small" id="reset-avatar" style="width: 100%;">↺ Avatar par défaut (initiale)</button>
-            </div>
-          </div>
-
-          <div style="margin-bottom: 24px;">
-            <div style="font-size: 11px; font-weight: 700; color: var(--gray-text); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 14px;">Informations</div>
-
-            <div class="form-field">
-              <label>Nom affiché publiquement</label>
-              <input type="text" id="setting-name" placeholder="Sacha Ketchum" value="${user.name || ''}" maxlength="40">
-              <div class="hint">Affiché en grand sur votre profil.</div>
-            </div>
-
-            <div class="form-field">
-              <label>Nom d'utilisateur (@username)</label>
-              <input type="text" id="setting-username" placeholder="sacha_pkmn" value="${user.username || ''}" maxlength="20">
-              <div class="hint">Sert à vous trouver dans la recherche. 3-20 caractères, lettres minuscules/chiffres/underscore. <strong>Modifiable tous les 14 jours.</strong></div>
-            </div>
-
-            <div class="form-field">
-              <label>Localisation</label>
-              <input type="text" id="setting-location" placeholder="France" value="${user.location || ''}" maxlength="40">
-            </div>
-
-            <div id="settings-error" style="display:none;"></div>
-          </div>
-
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-primary btn-large" id="save-settings">Enregistrer</button>
-        </div>
-      </div>
-    `);
-
-    // Render current avatar
-    async function renderPreview() {
-      const u = window.Auth.getCurrentUser();
-      const preview = document.getElementById('avatar-preview');
-      const label = document.getElementById('avatar-label');
-      if (u.avatarType === 'pokemon' && u.avatarValue) {
-        const url = await getPokemonAvatarUrl(u.avatarValue);
-        if (url) {
-          preview.innerHTML = `<img src="${url}" alt="" style="width:100%; height:100%; object-fit:cover;">`;
-          const av = POKEMON_AVATARS.find(p => p.id === u.avatarValue);
-          if (label) label.textContent = av?.name || 'Pokémon';
-          return;
-        }
-      }
-      preview.textContent = u.avatar || (u.name || '?').charAt(0).toUpperCase();
-      if (label) label.textContent = 'Avatar par défaut (initiale)';
-    }
-    renderPreview();
-
-    // Render Pokemon grid
-    const grid = document.getElementById('avatar-grid');
-    const current = window.Auth.getCurrentUser();
-    grid.innerHTML = POKEMON_AVATARS.map(p => {
-      const url = getPokemonAvatarUrl(p.id);
-      const isSelected = current?.avatarType === 'pokemon' && current?.avatarValue === p.id;
-      return `
-      <button class="avatar-option" data-avatar="${p.id}" title="${p.name}" style="
-        position: relative;
-        width: 100%; aspect-ratio: 1; border-radius: 50%; cursor: pointer;
-        background: linear-gradient(135deg, #f0f1f5, #d4d6e5);
-        border: 3px solid ${isSelected ? 'var(--red)' : 'transparent'};
-        overflow: hidden; transition: all 0.2s; padding: 0;
-        display: flex; align-items: center; justify-content: center;
-      ">
-        <img src="${url}" alt="${p.name}" loading="lazy" style="width: 90%; height: 90%; object-fit: contain; transition: transform 0.2s;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-        <div style="display:none; font-size: 9px; font-weight: 700; color: var(--gray-text); padding: 4px; text-align: center;">${p.name}</div>
-      </button>
-    `;
-    }).join('');
-
-    // Add hover scaling
-    grid.querySelectorAll('.avatar-option img').forEach(img => {
-      img.parentElement.addEventListener('mouseenter', () => { img.style.transform = 'scale(1.1)'; });
-      img.parentElement.addEventListener('mouseleave', () => { img.style.transform = 'scale(1)'; });
-    });
-
-    let selectedAvatar = current.avatarType === 'pokemon' ? current.avatarValue : null;
-    grid.addEventListener('click', async (e) => {
-      const btn = e.target.closest('.avatar-option');
-      if (!btn) return;
-      const id = btn.dataset.avatar;
-      selectedAvatar = id;
-      // Update borders
-      grid.querySelectorAll('.avatar-option').forEach(b => {
-        b.style.border = b.dataset.avatar === id ? '3px solid var(--red)' : '3px solid transparent';
-      });
-      // Update preview
-      const url = await getPokemonAvatarUrl(id);
-      const preview = document.getElementById('avatar-preview');
-      const label = document.getElementById('avatar-label');
-      if (url) {
-        preview.innerHTML = `<img src="${url}" alt="" style="width:100%; height:100%; object-fit:cover;">`;
-        const av = POKEMON_AVATARS.find(p => p.id === id);
-        if (label) label.textContent = av?.name || 'Pokémon';
-      }
-    });
-
-    document.getElementById('reset-avatar')?.addEventListener('click', () => {
-      selectedAvatar = null;
-      grid.querySelectorAll('.avatar-option').forEach(b => { b.style.border = '3px solid transparent'; });
-      const u = window.Auth.getCurrentUser();
-      const preview = document.getElementById('avatar-preview');
-      const label = document.getElementById('avatar-label');
-      preview.textContent = (u.name || '?').charAt(0).toUpperCase();
-      if (label) label.textContent = 'Avatar par défaut (initiale)';
-    });
-
-    document.getElementById('save-settings')?.addEventListener('click', async () => {
-      const saveBtn = document.getElementById('save-settings');
-      saveBtn.disabled = true;
-      saveBtn.textContent = 'Enregistrement…';
-
-      const newName = document.getElementById('setting-name')?.value?.trim() || '';
-      const newUsername = (document.getElementById('setting-username')?.value || '').toLowerCase().trim();
-      const newLocation = document.getElementById('setting-location')?.value?.trim() || '';
-
-      // Validation
-      const errors = [];
-      if (newName.length < 2) errors.push('Le nom doit faire au moins 2 caractères');
-      if (!/^[a-z0-9_]{3,20}$/.test(newUsername)) {
-        errors.push('Username invalide : 3-20 caractères, lettres minuscules, chiffres et underscore uniquement');
-      }
-      if (errors.length > 0) {
-        showFormError('settings-error', errors);
-        saveBtn.disabled = false;
-        saveBtn.textContent = 'Enregistrer';
-        return;
-      }
-
-      // Check username availability if changed
-      if (newUsername !== user.username) {
-        // 14-day cooldown check
-        const sb = window.SupabaseClient?.client;
-        const { data: profile } = await sb
-          .from('profiles')
-          .select('username_last_changed')
-          .eq('id', user.id)
-          .maybeSingle();
-
-        if (profile?.username_last_changed) {
-          const lastChange = new Date(profile.username_last_changed).getTime();
-          const daysSince = (Date.now() - lastChange) / (1000 * 60 * 60 * 24);
-          if (daysSince < 14) {
-            const daysLeft = Math.ceil(14 - daysSince);
-            showFormError('settings-error', [`Vous pourrez changer votre nom d'utilisateur dans ${daysLeft} jour(s). Limite : un changement tous les 14 jours.`]);
-            saveBtn.disabled = false;
-            saveBtn.textContent = 'Enregistrer';
-            return;
-          }
-        }
-
-        const { data: existing } = await sb
-          .from('profiles')
-          .select('id')
-          .eq('username', newUsername)
-          .neq('id', user.id)
-          .maybeSingle();
-        if (existing) {
-          showFormError('settings-error', ['Ce nom d\'utilisateur est déjà pris']);
-          saveBtn.disabled = false;
-          saveBtn.textContent = 'Enregistrer';
-          return;
-        }
-      }
-
-      // Build update payload
-      const updates = {
-        name: newName,
-        location: newLocation,
-      };
-      // Username update via direct Supabase call (not in updateProfile signature)
-      if (newUsername !== user.username) {
-        const sb = window.SupabaseClient?.client;
-        const { error } = await sb.from('profiles').update({
-          username: newUsername,
-          username_last_changed: new Date().toISOString(),
-        }).eq('id', user.id);
-        if (error) {
-          console.error(error);
-          showFormError('settings-error', ['Erreur lors de la mise à jour du nom d\'utilisateur']);
-          saveBtn.disabled = false;
-          saveBtn.textContent = 'Enregistrer';
-          return;
-        }
-      }
-
-      if (selectedAvatar) {
-        const url = getPokemonAvatarUrl(selectedAvatar);
-        updates.avatarType = 'pokemon';
-        updates.avatarValue = selectedAvatar;
-        updates.avatarUrl = url;
-      } else {
-        updates.avatarType = 'default';
-        updates.avatarValue = null;
-        updates.avatarUrl = null;
-      }
-
-      await window.Auth.updateProfile(updates);
-      toast('Paramètres enregistrés !', 'success');
-      closeModal();
-      setTimeout(() => location.reload(), 600);
-    });
-  }
-
-  // ============================================
-  // SETTINGS MODAL END
-  // ============================================
-
-  // ============================================
-  // MOBILE MENU (burger + drawer)
-  // ============================================
-  function installMobileMenu() {
-    const navInner = document.querySelector('.nav-inner');
-    if (!navInner) return;
-    if (document.querySelector('.mobile-menu-toggle')) return;
-
-    // Add burger button (before .nav-cta)
-    const burger = document.createElement('button');
-    burger.className = 'mobile-menu-toggle';
-    burger.setAttribute('aria-label', 'Menu');
-    burger.innerHTML = '<span></span><span></span><span></span>';
-    const navCta = navInner.querySelector('.nav-cta');
-    if (navCta) navInner.insertBefore(burger, navCta); else navInner.appendChild(burger);
-
-    // Create overlay
-    const overlay = document.createElement('div');
-    overlay.className = 'mobile-drawer-overlay';
-    document.body.appendChild(overlay);
-
-    // Create drawer
-    const drawer = document.createElement('div');
-    drawer.className = 'mobile-drawer';
-
-    const navLinks = document.querySelector('.nav-links');
-    const linksHTML = navLinks ? navLinks.innerHTML : '';
-
-    const user = window.Auth?.getCurrentUser();
-    const userSection = user
-      ? `
-        <div class="mobile-drawer-section">
-          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
-            <div style="width:42px; height:42px; border-radius:50%; background:var(--yellow); border:2px solid #1a1a2e; display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-weight:800; font-size:18px; color:#1a1a2e;">${user.avatar}</div>
-            <div>
-              <div style="font-weight:700; font-size:14px;">${user.name}</div>
-              <div style="font-family:var(--font-mono); font-size:11px; color:var(--gray-text);">@${user.username}</div>
-            </div>
-          </div>
-          <button class="btn btn-ghost" id="mobile-logout">Déconnexion</button>
-        </div>
-      `
-      : `
-        <div class="mobile-drawer-section">
-          <button class="btn btn-primary" id="mobile-signup">S'inscrire</button>
-          <button class="btn btn-ghost" id="mobile-login">Connexion</button>
-        </div>
-      `;
-
-    drawer.innerHTML = `
-      <div class="mobile-drawer-search">
-        <span style="color: var(--gray-text);">⌕</span>
-        <input type="text" placeholder="Rechercher une carte…" id="mobile-search-input">
-      </div>
-      <ul>${linksHTML}</ul>
-      ${userSection}
-    `;
-    document.body.appendChild(drawer);
-
-    function open() {
-      drawer.classList.add('open');
-      overlay.classList.add('open');
-      burger.classList.add('open');
-      document.body.style.overflow = 'hidden';
-    }
-    function close() {
-      drawer.classList.remove('open');
-      overlay.classList.remove('open');
-      burger.classList.remove('open');
-      document.body.style.overflow = '';
-    }
-
-    burger.addEventListener('click', () => {
-      drawer.classList.contains('open') ? close() : open();
-    });
-    overlay.addEventListener('click', close);
-    // Close on link click
-    drawer.querySelectorAll('a').forEach(a => a.addEventListener('click', close));
-
-    // Mobile auth buttons
-    document.getElementById('mobile-login')?.addEventListener('click', () => { close(); openLogin(); });
-    document.getElementById('mobile-signup')?.addEventListener('click', () => { close(); openSignup(); });
-    document.getElementById('mobile-logout')?.addEventListener('click', async () => {
-      close();
-      const ok = await confirm({ title: 'Déconnexion ?', message: 'Vous serez déconnecté.', confirmText: 'Me déconnecter' });
-      if (ok) {
-        window.Auth.logout();
-        window.location.href = 'index.html';
-      }
-    });
-
-    // Mobile search (same logic as desktop)
-    const mInput = document.getElementById('mobile-search-input');
-    let mTimeout;
-    mInput?.addEventListener('input', (e) => {
-      clearTimeout(mTimeout);
-      const q = e.target.value;
-      mTimeout = setTimeout(async () => {
-        if (!q || q.length < 2) return;
-        try {
-          const cards = await window.TCGdex.searchCards(q);
-          // Show results in drawer (simple version)
-          let resultsDiv = drawer.querySelector('.mobile-search-results');
-          if (!resultsDiv) {
-            resultsDiv = document.createElement('div');
-            resultsDiv.className = 'mobile-search-results';
-            drawer.querySelector('.mobile-drawer-search').after(resultsDiv);
-          }
-          const top = cards.slice(0, 5);
-          if (top.length === 0) {
-            resultsDiv.innerHTML = '<div style="padding:12px; text-align:center; color:var(--gray-text); font-size:13px;">Aucun résultat</div>';
-            return;
-          }
-          resultsDiv.innerHTML = '<div style="margin-bottom:20px;">' + top.map(c => `
-            <a href="carte.html?id=${c.id}" style="display:flex; align-items:center; gap:10px; padding:8px; border-radius: 8px; font-size:13px; color:inherit;">
-              <div style="width:30px; height:42px; background:var(--gray-bg); border-radius:4px; flex-shrink:0; overflow:hidden;">
-                <img src="${window.TCGdex.getCardImage(c, 'low', 'webp')}" alt="" style="width:100%; height:100%; object-fit:contain;">
-              </div>
-              <div style="font-weight:600;">${c.name}</div>
-            </a>
-          `).join('') + '</div>';
-        } catch (e) { console.error(e); }
-      }, 300);
-    });
-  }
-
-  // ============================================
   // NAVBAR SEARCH
   // ============================================
   function installNavbarSearch() {
@@ -1065,65 +627,27 @@
       }
       box.style.display = 'block';
       box.innerHTML = '<div style="padding:16px; text-align:center; font-size:13px; color:var(--gray-text);">Recherche…</div>';
-
-      // Search users via Supabase (real users from database)
-      let userMatches = [];
-      try {
-        if (window.Auth?.searchUsers) {
-          userMatches = await window.Auth.searchUsers(query);
-          userMatches = userMatches.slice(0, 3);
-        }
-      } catch (e) { console.warn(e); }
-
-      // Search cards via TCGdex API
-      let cardMatches = [];
       try {
         const cards = await window.TCGdex.searchCards(query);
-        cardMatches = cards.slice(0, 5);
-      } catch (e) {}
-
-      if (userMatches.length === 0 && cardMatches.length === 0) {
-        box.innerHTML = '<div style="padding:16px; text-align:center; font-size:13px; color:var(--gray-text);">Aucun résultat</div>';
-        return;
-      }
-
-      let html = '';
-
-      if (userMatches.length > 0) {
-        html += '<div style="padding:8px 14px 4px; font-size:10px; font-weight:700; color:var(--gray-text); text-transform:uppercase; letter-spacing:0.1em; background:var(--gray-bg);">Utilisateurs</div>';
-        html += userMatches.map(u => {
-          // Supabase returns snake_case: avatar_type, avatar_value, avatar_url
-          const avatarHtml = u.avatar_type === 'pokemon' && u.avatar_url
-            ? `<img src="${u.avatar_url}" alt="" style="width:100%; height:100%; object-fit:cover;">`
-            : (u.name || '?').charAt(0).toUpperCase();
-          return `
-            <a href="profil.html?user=${u.username}" style="display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom: 1px solid var(--gray-line); color:inherit; font-size:13px;">
-              <div style="width:36px; height:36px; background:var(--yellow); border-radius:50%; border:2px solid #1a1a2e; display:flex; align-items:center; justify-content:center; font-weight:800; color:#1a1a2e; overflow:hidden;">${avatarHtml}</div>
-              <div style="flex:1; min-width:0;">
-                <div style="font-weight:700;">${u.name}</div>
-                <div style="font-size:11px; color:var(--gray-text);">@${u.username}</div>
-              </div>
-            </a>
-          `;
-        }).join('');
-      }
-
-      if (cardMatches.length > 0) {
-        html += '<div style="padding:8px 14px 4px; font-size:10px; font-weight:700; color:var(--gray-text); text-transform:uppercase; letter-spacing:0.1em; background:var(--gray-bg);">Cartes</div>';
-        html += cardMatches.map(c => `
+        const top = cards.slice(0, 6);
+        if (top.length === 0) {
+          box.innerHTML = '<div style="padding:16px; text-align:center; font-size:13px; color:var(--gray-text);">Aucun résultat</div>';
+          return;
+        }
+        box.innerHTML = top.map(c => `
           <a href="carte.html?id=${c.id}" style="display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom: 1px solid var(--gray-line); color:inherit; font-size:13px;">
             <div style="width:32px; height:44px; background:var(--gray-bg); border-radius:4px; flex-shrink:0; overflow:hidden;">
               <img src="${window.TCGdex.getCardImage(c, 'low', 'webp')}" alt="" style="width:100%; height:100%; object-fit:contain;">
             </div>
             <div style="flex:1; min-width:0;">
               <div style="font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.name}</div>
-              <div style="font-size:10px; color:var(--gray-text); text-transform:uppercase; letter-spacing:0.08em; font-weight:600;">${c.id}</div>
+              <div style="font-family:var(--font-mono); font-size:10px; color:var(--gray-text); text-transform:uppercase;">${c.id}</div>
             </div>
           </a>
         `).join('');
+      } catch (e) {
+        box.innerHTML = '<div style="padding:16px; text-align:center; font-size:13px; color:var(--red);">Erreur de recherche</div>';
       }
-
-      box.innerHTML = html;
     }
 
     searchInput.addEventListener('input', (e) => {
@@ -1157,11 +681,8 @@
       // Logged in : show user dropdown
       const wrap = document.createElement('div');
       wrap.className = 'nav-user';
-      const avatarHtml = user.avatarType === 'pokemon' && user.avatarUrl
-        ? `<img src="${user.avatarUrl}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`
-        : (user.avatar || (user.name || '?').charAt(0).toUpperCase());
       wrap.innerHTML = `
-        <div class="nav-user-avatar">${avatarHtml}</div>
+        <div class="nav-user-avatar">${user.avatar}</div>
         <div class="nav-user-name">${user.name.split(' ')[0]}</div>
         <span class="nav-user-chevron">▼</span>
         <div class="user-dropdown">
@@ -1170,18 +691,10 @@
           <a href="trade.html">⇌ Mes échanges</a>
           <a href="marche.html">🛒 Marché</a>
           <div class="divider"></div>
-          <button id="open-settings-btn">⚙ Paramètres</button>
           <button id="logout-btn" class="danger">⎋ Déconnexion</button>
         </div>
       `;
       navCta.appendChild(wrap);
-
-      // Settings button
-      wrap.querySelector('#open-settings-btn')?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        dropdown.classList.remove('open');
-        openSettings();
-      });
 
       const dropdown = wrap.querySelector('.user-dropdown');
       wrap.addEventListener('click', (e) => {
@@ -1245,23 +758,22 @@
   window.UI = {
     openModal, closeModal,
     openLogin, openSignup,
-    openSettings,
     confirm, toast,
     installNavbar,
-    POKEMON_AVATARS,
-    getPokemonAvatarUrl,
   };
 
   // Auto-install when DOM ready
-  async function init() {
-    // Init Supabase Auth FIRST (loads session if exists)
-    if (window.Auth?.init) {
-      await window.Auth.init();
+  function init() {
+    // Ensure demo user exists
+    window.Auth.ensureDemoUser();
+    // Seed demo data only if logged in
+    if (window.Auth.isLoggedIn()) {
+      window.Storage.seedDemoData();
     }
-    // Install UI components
+    // Install navbar
     installNavbar();
+    // Install search
     installNavbarSearch();
-    installMobileMenu();
   }
 
   if (document.readyState === 'loading') {

@@ -1,11 +1,6 @@
 // PROFIL-PAGE.JS — Logique de la page profil
 (async () => {
 
-  // Wait for Auth to be ready (Supabase init is async)
-  if (window.Auth?.init) {
-    await window.Auth.init();
-  }
-
   // 1. UPDATE HEADER from current user
   const user = window.Auth.getCurrentUser();
   if (user) {
@@ -15,35 +10,12 @@
     const metaEl = document.querySelector('.profil-meta');
     const dateStr = new Date(user.createdAt).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long' });
 
-    // Avatar: Pokemon image if set, else initial
-    if (avatarEl) {
-      if (user.avatarType === 'pokemon' && user.avatarValue && window.UI?.getPokemonAvatarUrl) {
-        const url = window.UI.getPokemonAvatarUrl(user.avatarValue);
-        if (url) {
-          avatarEl.innerHTML = `<img src="${url}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
-          avatarEl.style.padding = '0';
-          avatarEl.style.overflow = 'hidden';
-          // Sync to DB if not already cached
-          if (!user.avatarUrl) {
-            window.Auth.updateProfile({ avatarUrl: url });
-          }
-        } else {
-          avatarEl.textContent = user.avatar || (user.name || '?').charAt(0).toUpperCase();
-        }
-      } else {
-        avatarEl.textContent = user.avatar || (user.name || '?').charAt(0).toUpperCase();
-      }
-    }
+    if (avatarEl) avatarEl.textContent = user.avatar;
     if (headerH1) {
-      const parts = user.name.split(' ').filter(s => s);
-      if (parts.length >= 2) {
-        const firstName = parts[0];
-        const lastName = parts.slice(1).join(' ');
-        headerH1.innerHTML = firstName + ' <span class="accent">' + lastName + '</span>';
-      } else {
-        // Single word name: just display it without fake italic suffix
-        headerH1.textContent = user.name;
-      }
+      const parts = user.name.split(' ');
+      const firstName = parts[0];
+      const lastName = parts.slice(1).join(' ') || 'Dresseur';
+      headerH1.innerHTML = firstName + ' <span class="accent">' + lastName + '</span>';
     }
     if (usernameEl) usernameEl.textContent = '@' + user.username + ' \u00b7 Membre depuis ' + dateStr;
     if (metaEl) {
@@ -78,20 +50,8 @@
   }
 
   // 3. LOAD COLLECTION
-  if (!window.Auth.isLoggedIn()) {
-    document.getElementById('collection-grid').innerHTML =
-      '<div class="empty-state" style="grid-column:1/-1;">' +
-      '<div class="emoji">\ud83d\udd12</div>' +
-      '<h3>Connectez-vous pour voir votre collection</h3>' +
-      '<p>Vous devez \u00eatre connect\u00e9 pour acc\u00e9der \u00e0 votre profil.</p>' +
-      '<button class="btn btn-primary" style="margin-top:16px;" onclick="window.UI.openLogin()">Se connecter</button>' +
-      '</div>';
-    return;
-  }
-
-  const collectionIds = await window.Storage.getCollection();
-  const favoriteIds = await window.Storage.getFavorites();
-  const favSet = new Set(favoriteIds);
+  const collectionIds = window.Storage.getCollection();
+  const favoriteIds = window.Storage.getFavorites();
 
   let allCards = [];
   try {
@@ -113,11 +73,11 @@
   allCards.forEach(c => { if (c.set?.id) uniqueSets.add(c.set.id); });
   document.getElementById('stat-sets').textContent = uniqueSets.size;
 
-  // Record portfolio value for today (no-op in Supabase v1)
-  await window.Storage.recordPortfolioValue(totalValue);
+  // Record portfolio value for today
+  window.Storage.recordPortfolioValue(totalValue);
 
   // Compute performance vs 30 days ago
-  const history = await window.Storage.getPortfolioHistory();
+  const history = window.Storage.getPortfolioHistory();
   const perfEl = document.getElementById('stat-perf');
   if (history.length >= 2) {
     const old = history[Math.max(0, history.length - 30)].value;
@@ -127,10 +87,10 @@
       perfEl.textContent = (pct >= 0 ? '\u2191 +' : '\u2193 ') + pct.toFixed(1) + '%';
       perfEl.className = 'v ' + (pct >= 0 ? 'green' : 'red');
     } else {
-      perfEl.textContent = '\u2014';
+      perfEl.textContent = '—';
     }
   } else {
-    perfEl.textContent = '\u2014';
+    perfEl.textContent = '—';
   }
 
   // 5. COLLECTION GRID
@@ -138,7 +98,7 @@
     const img = window.TCGdex.getCardImage(c, 'low', 'webp');
     const priceData = window.TCGdex.getRealPrice(c);
     const trend = window.TCGdex.estimateTrend(c);
-    const isFav = favSet.has(c.id);
+    const isFav = window.Storage.isFavorite(c.id);
     return '<div class="pkmn-card">' +
       '<button class="fav-toggle ' + (isFav ? 'active' : '') + '" data-fav-id="' + c.id + '" aria-label="Favori"></button>' +
       '<a href="carte.html?id=' + c.id + '" style="display:block;color:inherit;">' +
@@ -187,18 +147,18 @@
   }
 
   // 7. FAVORITE TOGGLE LISTENER (delegated)
-  document.addEventListener('click', async (e) => {
+  document.addEventListener('click', (e) => {
     const btn = e.target.closest('.fav-toggle');
     if (!btn) return;
     e.preventDefault();
     e.stopPropagation();
     const id = btn.dataset.favId;
-    const nowFav = await window.Storage.toggleFavorite(id);
+    const nowFav = window.Storage.toggleFavorite(id);
     document.querySelectorAll('[data-fav-id="' + id + '"]').forEach(b => b.classList.toggle('active', nowFav));
     window.UI.toast(nowFav ? 'Ajout\u00e9 aux favoris \u2665' : 'Retir\u00e9 des favoris', nowFav ? 'success' : 'info');
 
     // Update fav count
-    const newFav = await window.Storage.getFavorites();
+    const newFav = window.Storage.getFavorites();
     document.getElementById('tab-count-fav').textContent = newFav.length;
     document.getElementById('stat-fav').textContent = newFav.length;
   });
@@ -223,22 +183,6 @@
         '<path d="M0,180 L' + points.join(' L') + ' L600,180 Z" fill="url(#chartGrad)"/>' +
         '<path d="M' + points.join(' L') + '" fill="none" stroke="#dc0a2d" stroke-width="3"/>';
     }
-  } else {
-    // Not enough data yet — show a friendly placeholder
-    const portfolioChart = document.querySelector('#tab-portfolio .portfolio-chart');
-    if (portfolioChart) {
-      const svg = portfolioChart.querySelector('.chart-svg');
-      if (svg) {
-        svg.innerHTML = `
-          <text x="300" y="80" text-anchor="middle" font-family="Inter" font-size="14" font-weight="600" fill="rgba(255,255,255,0.4)">
-            Pas encore assez de données
-          </text>
-          <text x="300" y="105" text-anchor="middle" font-family="Inter" font-size="12" fill="rgba(255,255,255,0.3)">
-            Revenez chaque jour pour suivre votre portefeuille
-          </text>
-        `;
-      }
-    }
   }
 
   // 9. TOP HOLDINGS
@@ -262,7 +206,7 @@
     }).join('');
 
   // 10. ACTIVITY TAB
-  const activity = await window.Storage.getActivity();
+  const activity = window.Storage.getActivity();
   const activityTab = document.getElementById('tab-activity');
   if (activity.length === 0) {
     activityTab.innerHTML =
@@ -301,7 +245,7 @@
   });
 
   document.getElementById('btn-settings')?.addEventListener('click', () => {
-    window.UI.openSettings();
+    window.UI.toast('Page paramètres bientôt disponible', 'info');
   });
 
 })();

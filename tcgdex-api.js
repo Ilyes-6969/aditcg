@@ -14,7 +14,7 @@ const CACHE = {
   series: null,
 };
 
-const CACHE_KEY = 'aditcg_cache_v2'; // bump version after pricing addition
+const CACHE_KEY = 'aditcg_cache_v3'; // bump version après refonte prix + séries
 const CACHE_TTL = 1000 * 60 * 60 * 6; // 6h (prix mis à jour quotidiennement)
 
 function loadCacheFromStorage() {
@@ -133,10 +133,8 @@ function getRealPrice(card) {
   // 1) CARDMARKET (EUR)
   if (p?.cardmarket) {
     const cm = p.cardmarket;
-    // Use avg30 (median-like, 30-day average) for stability, NOT 'low' (which is the seller's lowest)
-    // This protects buyers from getting misleading "too good to be true" prices
-    const main = cm.avg30 ?? cm.avg ?? cm.trend ?? cm.avg7 ?? null;
-    const holo = cm['avg30-holo'] ?? cm['avg-holo'] ?? cm['trend-holo'] ?? null;
+    const main = cm.avg ?? cm.avg30 ?? cm.trend ?? cm.low ?? null;
+    const holo = cm['avg-holo'] ?? cm['avg30-holo'] ?? cm['trend-holo'] ?? null;
     if (main !== null && main !== undefined) {
       // Calcul tendance 30j (en %) si possible
       let trend30d = null;
@@ -161,14 +159,6 @@ function getRealPrice(card) {
         high: null,
         holoPrice: holo ? Math.round(holo * 100) / 100 : null,
         normalPrice: Math.round(main * 100) / 100,
-        // EXTRA POINTS for chart + detail display
-        avg1: cm.avg1 ?? null,
-        avg7: cm.avg7 ?? null,
-        avg30: cm.avg30 ?? null,
-        trend: cm.trend ?? null,
-        reverseHolo: cm['reverse-holo-avg'] ?? cm['reverse-holo-trend'] ?? null,
-        suggestedPrice: cm.suggestedPrice ?? null,
-        updated: cm.updated ?? null,
       };
     }
   }
@@ -223,67 +213,84 @@ function estimateTrend(card) {
 
 // ============================================
 // ESTIMATION FALLBACK (pour cartes sans pricing data)
-// Basé sur les ventes Cardmarket/eBay FR — état Near Mint (NM)
+// Calibrée sur les ordres de grandeur Cardmarket / eBay :
+//  - bulk moderne : centimes
+//  - holos : quelques €
+//  - chase / alt art : dizaines à centaines d'€
+//  - vintage WOTC : forte prime
 // ============================================
-const ICONIC_POKEMONS = ['charizard', 'dracaufeu', 'pikachu', 'mewtwo', 'mew', 'lugia', 'rayquaza', 'umbreon', 'noctali', 'eevee', 'évoli', 'gengar', 'ectoplasma', 'dragonite', 'dracolosse', 'ho-oh', 'arceus', 'gardevoir', 'sylveon', 'nymphali'];
-const VINTAGE_BOOSTERS = ['base1', 'base2', 'jungle', 'fossil', 'rocket', 'gym', 'neo', 'expedition', 'aquapolis', 'skyridge'];
+const ICONIC_NAMES = [
+  'charizard', 'dracaufeu', 'pikachu', 'mewtwo', 'mew', 'lugia',
+  'rayquaza', 'umbreon', 'noctali', 'eevee', 'evoli', 'gengar', 'ectoplasma',
+  'dragonite', 'dracolosse', 'gardevoir', 'lucario', 'greninja', 'amphinobi',
+  'snorlax', 'ronflex', 'blastoise', 'tortank', 'venusaur', 'florizarre',
+  'gyarados', 'leviator', 'sylveon', 'nymphali',
+];
+
+// Multiplicateur selon l'ère, déduit du préfixe d'identifiant TCGdex
+function getEraInfo(cardId) {
+  const id = (cardId || '').toLowerCase();
+  if (/^(base|jungle|fossil|gym|neo|ecard|wp|si|bp)/.test(id)) return { mult: 4.0, era: 'vintage' };
+  if (/^ex/.test(id)) return { mult: 2.1, era: 'ex' };
+  if (/^(dp|pl|hgss|col|ru)/.test(id)) return { mult: 1.6, era: 'dppl' };
+  if (/^(bw|dv|mcd|rc)/.test(id)) return { mult: 1.3, era: 'bw' };
+  if (/^(xy|g1|dc)/.test(id)) return { mult: 1.2, era: 'xy' };
+  if (/^(sm|det|sma)/.test(id)) return { mult: 1.1, era: 'sm' };
+  if (/^swsh/.test(id)) return { mult: 1.0, era: 'swsh' };
+  if (/^sv/.test(id)) return { mult: 1.0, era: 'sv' };
+  return { mult: 1.1, era: 'other' };
+}
 
 function getEstimatedPrice(card) {
-  if (!card) return { price: 0, currency: 'EUR', source: 'estimation', trend7d: null, trend30d: null };
+  const empty = { price: 0, currency: 'EUR', source: 'estimation', trend7d: null, trend30d: null, low: null, high: null, holoPrice: null, normalPrice: 0 };
+  if (!card) return empty;
+
   const name = (card.name || '').toLowerCase();
   const rarity = (card.rarity || '').toLowerCase();
-  const setId = (card.set?.id || card._setId || '').toLowerCase();
-  const releaseDate = card.set?.releaseDate || '';
-  const releaseYear = parseInt((releaseDate || '0').slice(0, 4)) || 2024;
+  const { mult: eraMult } = getEraInfo(card.id);
+  const idHash = (card.id || 'x').split('').reduce((a, c, i) => a + c.charCodeAt(0) * (i + 1), 0);
 
-  // BASE PRICE par rareté (en € NM, marché français médian)
-  let base = 1.5;
-  if (rarity.includes('common')) base = 0.5;
-  else if (rarity.includes('uncommon')) base = 1.5;
-  else if (rarity === 'rare' || (rarity.includes('rare') && !rarity.includes('holo') && !rarity.includes('ultra'))) base = 5;
-  else if (rarity.includes('rare holo') || rarity.includes('holo rare')) base = 12;
-  else if (rarity.includes('ultra rare') || rarity.includes('ultra')) base = 28;
-  else if (rarity.includes('secret rare') || rarity.includes('secret')) base = 65;
-  else if (rarity.includes('full art')) base = 35;
-  else if (rarity.includes('alt') || rarity.includes('illustration rare')) base = 90;
-  else if (rarity.includes('special illustration') || rarity.includes('hyper rare')) base = 180;
-  else if (rarity.includes('amazing rare')) base = 25;
-  else if (rarity.includes('shiny')) base = 22;
-  else if (rarity.includes('legend')) base = 75;
-  else if (rarity.includes('promo')) base = 4;
+  let base;
+  if (rarity) {
+    // Carte complète : rareté connue
+    if (rarity.includes('common')) base = 0.25;
+    else if (rarity.includes('uncommon')) base = 0.60;
+    else if (rarity.includes('illustration') || rarity.includes('alt')) base = 70;
+    else if (rarity.includes('secret') || rarity.includes('rainbow')) base = 45;
+    else if (rarity.includes('ultra')) base = 18;
+    else if (rarity.includes('full art')) base = 32;
+    else if (rarity.includes('holo')) base = 7;
+    else if (rarity.includes('promo')) base = 4;
+    else if (rarity.includes('rare')) base = 1.4;
+    else base = 1.0;
+  } else {
+    // Brief sans rareté (listes de sets) : distribution réaliste de marché
+    const roll = idHash % 100;
+    if (roll < 65) base = 0.10 + (idHash % 70) / 100;   // ~65% bulk : 0,10–0,80 €
+    else if (roll < 87) base = 1 + (idHash % 30) / 10;  // ~22% rares : 1–4 €
+    else if (roll < 96) base = 6 + (idHash % 14);       // ~9%  holos : 6–20 €
+    else if (roll < 99) base = 25 + (idHash % 45);      // ~3%  ultra : 25–70 €
+    else base = 90 + (idHash % 160);                    // ~1%  chase : 90–250 €
+  }
 
-  // MULTIPLICATEUR Pokémon emblématique (Dracaufeu, Pikachu, etc.)
-  const isIconic = ICONIC_POKEMONS.some(n => name.includes(n));
-  const isCharizard = name.includes('charizard') || name.includes('dracaufeu');
-  if (isCharizard) base *= 4.0;       // Dracaufeu cartes valent toujours bcp plus
-  else if (isIconic) base *= 1.8;
+  // Prime Pokémon iconiques (forte sur les cartes de valeur, légère sur le bulk)
+  const isIconic = ICONIC_NAMES.some(n => name.includes(n));
+  const iconicMult = isIconic ? (base >= 5 ? 2.4 : 1.4) : 1;
 
-  // MULTIPLICATEUR vintage (Base Set 1999-2003 = très demandé)
-  const isVintage = VINTAGE_BOOSTERS.some(v => setId.startsWith(v)) || releaseYear < 2004;
-  if (isVintage && releaseYear < 2001) base *= 3.5;  // Base, Jungle, Fossil, Rocket = collector
-  else if (isVintage) base *= 2.2;
-  else if (releaseYear < 2010) base *= 1.4;          // EX/DP era
-  else if (releaseYear < 2017) base *= 1.1;          // XY/SM
+  // Variation déterministe ±15 %
+  const variation = 0.85 + (idHash % 31) / 100;
 
-  // Petite variation déterministe pour pas avoir tous les même prix
-  const idHash = (card.id || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-  const variation = 0.85 + ((idHash % 30) / 100); // 0.85 to 1.15
-  let price = base * variation;
-
-  // Arrondi propre
-  if (price < 1) price = Math.round(price * 10) / 10;       // 0.5, 0.7, 0.9
-  else if (price < 10) price = Math.round(price * 2) / 2;   // 1.5, 2.0, 2.5
-  else if (price < 100) price = Math.round(price);
-  else price = Math.round(price / 5) * 5;                    // 105, 110, 115...
+  let price = Math.round(base * eraMult * iconicMult * variation * 100) / 100;
+  if (price < 0.05) price = 0.05;
 
   return {
     price,
     currency: 'EUR',
     trend7d: null,
-    trend30d: ((idHash % 30) - 8),  // -8 to +22%
+    trend30d: ((idHash % 40) - 12),
     source: 'estimation',
     low: Math.round(price * 0.7 * 100) / 100,
-    high: Math.round(price * 1.4 * 100) / 100,
+    high: Math.round(price * 1.5 * 100) / 100,
     holoPrice: null,
     normalPrice: price,
   };
@@ -347,9 +354,44 @@ function estimateSetFloor(set) {
 }
 
 // ============================================
+// SERIES — liste complète ENRICHIE et triée chronologiquement
+// L'endpoint /sets ne renvoie ni `serie` ni `releaseDate` ;
+// /series/{id} les fournit. On enrichit donc chaque set ici.
+// ============================================
+async function getAllSeries() {
+  if (CACHE.series) return CACHE.series;
+  try {
+    const briefs = await fetchJSON(`${TCGDEX_API}/series`);
+    const enriched = await Promise.all(briefs.map(async (b) => {
+      const detail = await fetchJSON(`${TCGDEX_API}/series/${b.id}`).catch(() => null);
+      const releaseDate = detail?.releaseDate || '';
+      const sets = (detail?.sets || []).map(s => ({
+        ...s,
+        serie: { id: b.id, name: b.name },
+        releaseDate: s.releaseDate || releaseDate, // approx : date de la série
+      }));
+      return { id: b.id, name: b.name, logo: b.logo, releaseDate, sets };
+    }));
+    // Tri chronologique : Set de Base (1999) → dernières sorties
+    enriched.sort((a, b) => (a.releaseDate || '9999').localeCompare(b.releaseDate || '9999'));
+    CACHE.series = enriched;
+    saveCacheToStorage();
+    return enriched;
+  } catch (err) {
+    console.error('getAllSeries error:', err);
+    return [];
+  }
+}
+
+// ============================================
 // SETS BY SERIES
 // ============================================
 async function getSetsBySeries() {
+  const series = await getAllSeries();
+  if (series.length > 0) {
+    return series.map(s => ({ id: s.id, name: s.name, sets: s.sets }));
+  }
+  // Fallback : regroupement à plat
   const sets = await getAllSets();
   const grouped = {};
   sets.forEach(set => {
@@ -368,10 +410,7 @@ async function getSetsBySeries() {
 // ============================================
 function getCardImage(card, quality = 'high', format = 'webp') {
   if (!card || !card.image) return null;
-  // TCGdex sometimes returns image without protocol
-  let url = card.image;
-  if (!url.startsWith('http')) url = 'https://' + url.replace(/^\/+/, '');
-  return `${url}/${quality}.${format}`;
+  return `${card.image}/${quality}.${format}`;
 }
 
 function getSetLogo(set, format = 'webp') {
@@ -447,6 +486,7 @@ async function getTCGplayerPrice(cardId) {
 // ============================================
 window.TCGdex = {
   getAllSets,
+  getAllSeries,        // NEW : séries enrichies + triées chronologiquement
   getSetDetail,
   getCardDetail,
   getSetsBySeries,

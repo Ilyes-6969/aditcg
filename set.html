@@ -16,7 +16,7 @@
 <title>Série — ADITCG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,800;0,900;1,400&family=Inter:wght@400;500;600;700;800;900&family=Fraunces:ital,opsz,wght@1,9..144,300;1,9..144,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,700;0,9..144,800;0,9..144,900;1,9..144,300&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <style>
   /* HERO */
@@ -187,32 +187,6 @@
   }
   .toolbar-count strong { color: var(--red); font-size: 16px; font-family: var(--font-display); }
 
-  .search-box {
-    flex: 1;
-    min-width: 240px;
-    max-width: 400px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 18px;
-    background: var(--gray-bg);
-    border: 1.5px solid var(--gray-line);
-    border-radius: var(--radius-pill);
-    transition: all 0.2s;
-  }
-  .search-box:focus-within { border-color: var(--blue); background: var(--white); }
-  .search-icon { color: var(--gray-text); font-size: 16px; }
-  .search-box input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    outline: none;
-    font-family: var(--font-body);
-    font-size: 14px;
-    color: var(--ink);
-  }
-  .search-box input::placeholder { color: var(--gray-text-2); }
-
   /* POKEMON CARDS GRID */
   .pokemon-grid {
     display: grid;
@@ -256,25 +230,6 @@
     animation: skel 1.4s ease-in-out infinite;
   }
   @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-
-  .card-fallback {
-    width: 100%; height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, var(--blue), var(--blue-deep));
-    color: #fff;
-    padding: 20px;
-    text-align: center;
-  }
-  .cf-emoji { font-size: 48px; margin-bottom: 12px; opacity: 0.6; }
-  .cf-name {
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 14px;
-    line-height: 1.3;
-  }
 
   .pkmn-card-owned-badge {
     position: absolute;
@@ -344,8 +299,6 @@
     .pokemon-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
   }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase-client.js"></script>
 </head>
 <body>
 
@@ -408,16 +361,11 @@
 
     <div class="cards-toolbar">
       <div class="toolbar-count" id="cards-count"><strong>—</strong> cartes</div>
-      <div class="search-box">
-        <span class="search-icon">⌕</span>
-        <input type="text" id="set-search" placeholder="Rechercher dans la série…">
-      </div>
       <div class="filter-bar" id="rarity-filter">
         <button class="filter-chip active" data-rarity="all">Toutes</button>
         <button class="filter-chip" data-rarity="owned">Possédées</button>
         <button class="filter-chip" data-rarity="missing">Manquantes</button>
         <button class="filter-chip" data-rarity="rare">Rares+</button>
-        <button class="filter-chip" data-rarity="sale">À vendre</button>
       </div>
     </div>
 
@@ -442,7 +390,7 @@
       <div class="footer-col"><h5>Support</h5><ul><li><a href="#">FAQ</a></li><li><a href="#">Contact</a></li></ul></div>
     </div>
     <div class="footer-bottom">
-      <div>© 2026 ADITCG · Plateforme indépendante de revente entre particuliers · Non affiliée à Nintendo, The Pokémon Company ou Game Freak. Pokémon™ et tous les noms de personnages associés sont des marques déposées de Nintendo / Game Freak / The Pokémon Company.</div>
+      <div>© 2026 ADITCG · Pokémon™ Nintendo / Game Freak</div>
       <div>Données : TCGdex</div>
     </div>
   </div>
@@ -455,18 +403,11 @@
 <script src="app.js"></script>
 <script>
 (async () => {
-  // Wait for Auth to be ready
-  if (window.Auth?.init) await window.Auth.init();
-
   const params = new URLSearchParams(window.location.search);
   const setId = params.get('id');
   let activeFilter = 'all';
-  let searchQuery = ''; // search box query
   let allCards = [];
   let ownedSet = new Set();
-  let favSet = new Set();
-  let displayedSetCount = 36;
-  let total = 0;
 
   if (!setId) {
     document.body.innerHTML = '<div style="padding: 100px; text-align: center;"><h1>Série introuvable</h1><a href="series.html" class="btn btn-primary">← Retour aux séries</a></div>';
@@ -480,7 +421,7 @@
     document.title = `${set.name} — ADITCG`;
     document.getElementById('bc-set').textContent = set.name;
 
-    total = set.cardCount?.total || set.cards?.length || 0;
+    const total = set.cardCount?.total || set.cards?.length || 0;
     const year = (set.releaseDate || '').slice(0, 4) || '—';
     const logo = window.TCGdex.getSetLogo(set, 'webp');
 
@@ -499,15 +440,12 @@
     });
     const realCoverage = pricedCount > 0 ? Math.round((realCount / pricedCount) * 100) : 0;
 
-    // Use real Storage data (only if logged in)
-    if (window.Auth.isLoggedIn()) {
-      const realCollection = await window.Storage.getCollection();
-      cardsList.forEach(c => {
-        if (realCollection.includes(c.id)) ownedSet.add(c.id);
-      });
-      const favList = await window.Storage.getFavorites();
-      favSet = new Set(favList);
-    }
+    // Pseudo-random "owned" 60% of cards
+    // Use real Storage data
+    const realCollection = window.Storage.getCollection();
+    cardsList.forEach(c => {
+      if (realCollection.includes(c.id)) ownedSet.add(c.id);
+    });
     const ownedCount = ownedSet.size;
 
     // HERO
@@ -585,47 +523,30 @@
       const r = (c.rarity || '').toLowerCase();
       return r.includes('rare') || r.includes('holo') || r.includes('ultra') || r.includes('secret');
     });
-    else if (activeFilter === 'sale') filtered = allCards.filter(c => {
-      // "À vendre" : cards with a real Cardmarket price
-      const p = window.TCGdex.getRealPrice(c);
-      return p && p.source === 'cardmarket' && p.price > 0;
-    });
-
-    // Apply search query
-    if (searchQuery && searchQuery.trim().length > 0) {
-      const q = searchQuery.toLowerCase().trim();
-      filtered = filtered.filter(c =>
-        c.name.toLowerCase().includes(q) ||
-        (c.localId || '').toString().includes(q) ||
-        (c.rarity || '').toLowerCase().includes(q)
-      );
-    }
 
     if (filtered.length === 0) {
-      grid.innerHTML = '<div class="empty-state" style="grid-column: 1/-1;"><div class="emoji">🃏</div><h3>Aucune carte</h3><p>Aucune carte ne correspond à votre recherche.</p></div>';
+      grid.innerHTML = '<div class="empty-state" style="grid-column: 1/-1;"><div class="emoji">🃏</div><h3>Aucune carte</h3><p>Aucune carte ne correspond à ce filtre.</p></div>';
       return;
     }
 
-    const toRender = filtered.slice(0, displayedSetCount);
-
-    grid.innerHTML = toRender.map(c => {
+    grid.innerHTML = filtered.map(c => {
       const img = window.TCGdex.getCardImage(c, 'low', 'webp');
       const price = window.TCGdex.estimatePrice(c);
       const isOwned = ownedSet.has(c.id);
-      const isFav = favSet.has(c.id);
-      const imgHtml = img
-        ? `<img src="${img}" alt="${c.name}" loading="lazy" onerror="this.parentNode.innerHTML='<div class=&quot;card-fallback&quot;><div class=&quot;cf-emoji&quot;>🃏</div><div class=&quot;cf-name&quot;>${c.name.replace(/'/g, '&apos;')}</div></div>'">`
-        : `<div class="card-fallback"><div class="cf-emoji">🃏</div><div class="cf-name">${c.name}</div></div>`;
+      const isFav = window.Storage.isFavorite(c.id);
       return `
         <div class="pkmn-card ${isOwned ? '' : 'not-owned'}" style="position: relative;">
           <button class="fav-toggle ${isFav ? 'active' : ''}" data-fav-id="${c.id}" aria-label="Favori"></button>
           <button class="owned-toggle ${isOwned ? 'active' : ''}" data-owned-id="${c.id}">${isOwned ? '✓ POSSÉDÉE' : '+ AJOUTER'}</button>
           <a href="carte.html?id=${c.id}" style="display:block; color: inherit;">
-            <div class="pkmn-card-img">${imgHtml}</div>
+            <div class="pkmn-card-img">
+              <img src="${img}" alt="${c.name}" loading="lazy"
+                onerror="this.parentNode.innerHTML='<div class=&quot;skel&quot;></div>'">
+            </div>
             <div class="pkmn-card-info">
               <div class="pkmn-card-name">${c.name}</div>
               <div class="pkmn-card-meta">
-                <span>${c.localId || '?'}/${total || '?'}</span>
+                <span>${c.localId || '?'}/${c.localId ? allCards.length : '?'}</span>
                 <span>${(c.rarity || '').substring(0, 12)}</span>
               </div>
               <div class="pkmn-card-foot">
@@ -635,61 +556,19 @@
           </a>
         </div>`;
     }).join('');
-
-    // Load more button
-    let moreContainer = document.getElementById('set-load-more');
-    if (!moreContainer) {
-      moreContainer = document.createElement('div');
-      moreContainer.id = 'set-load-more';
-      grid.parentNode.insertBefore(moreContainer, grid.nextSibling);
-    }
-
-    if (filtered.length > displayedSetCount) {
-      moreContainer.innerHTML = `
-        <button class="btn btn-ghost" id="set-show-more" style="margin: 30px auto; display: block; min-width: 220px;">
-          Voir ${Math.min(36, filtered.length - displayedSetCount)} cartes de plus
-          <span style="opacity: 0.6; margin-left: 8px;">(${displayedSetCount}/${filtered.length})</span>
-        </button>
-      `;
-      document.getElementById('set-show-more').addEventListener('click', () => {
-        displayedSetCount += 36;
-        renderCards();
-        // Smooth scroll after render
-        setTimeout(() => {
-          window.scrollBy({ top: 200, behavior: 'smooth' });
-        }, 50);
-      });
-
-      // Auto-load when scrolling near the bottom (IntersectionObserver)
-      const btn = document.getElementById('set-show-more');
-      if (btn && 'IntersectionObserver' in window) {
-        const observer = new IntersectionObserver((entries) => {
-          if (entries[0].isIntersecting) {
-            displayedSetCount += 36;
-            observer.disconnect();
-            renderCards();
-          }
-        }, { rootMargin: '300px' });
-        observer.observe(btn);
-      }
-    } else {
-      moreContainer.innerHTML = '';
-    }
   }
 
   // Delegated handlers for owned/favorite toggles
-  document.getElementById('cards-grid').addEventListener('click', async (e) => {
+  document.getElementById('cards-grid').addEventListener('click', (e) => {
     const favBtn = e.target.closest('.fav-toggle');
     const ownedBtn = e.target.closest('.owned-toggle');
 
     if (favBtn) {
       e.preventDefault();
       e.stopPropagation();
-      if (!window.Auth.isLoggedIn()) { window.UI.openLogin(); return; }
       const id = favBtn.dataset.favId;
-      const now = await window.Storage.toggleFavorite(id);
+      const now = window.Storage.toggleFavorite(id);
       favBtn.classList.toggle('active', now);
-      if (now) favSet.add(id); else favSet.delete(id);
       window.UI.toast(now ? 'Ajouté aux favoris ♥' : 'Retiré des favoris', now ? 'success' : 'info');
       return;
     }
@@ -697,9 +576,8 @@
     if (ownedBtn) {
       e.preventDefault();
       e.stopPropagation();
-      if (!window.Auth.isLoggedIn()) { window.UI.openLogin(); return; }
       const id = ownedBtn.dataset.ownedId;
-      const now = await window.Storage.toggleOwned(id);
+      const now = window.Storage.toggleOwned(id);
       ownedBtn.classList.toggle('active', now);
       ownedBtn.innerHTML = now ? '✓ POSSÉDÉE' : '+ AJOUTER';
       // Update card grayscale
@@ -707,6 +585,7 @@
       if (card) card.classList.toggle('not-owned', !now);
       if (now) ownedSet.add(id); else ownedSet.delete(id);
       window.UI.toast(now ? 'Carte ajoutée à votre collection !' : 'Carte retirée de votre collection', now ? 'success' : 'info');
+      // Update completion bar
       updateCompletionBar();
       return;
     }
@@ -727,20 +606,8 @@
       document.querySelectorAll('#rarity-filter .filter-chip').forEach(c => c.classList.remove('active'));
       chip.classList.add('active');
       activeFilter = chip.dataset.rarity;
-      displayedSetCount = 36;
       renderCards();
     });
-  });
-
-  // Search input
-  let searchTimeout;
-  document.getElementById('set-search')?.addEventListener('input', (e) => {
-    clearTimeout(searchTimeout);
-    searchQuery = e.target.value;
-    searchTimeout = setTimeout(() => {
-      displayedSetCount = 36;
-      renderCards();
-    }, 200);
   });
 })();
 </script>

@@ -9,9 +9,9 @@
   --red-deep: #a30821;
   --red-light: #ff3554;
 
-  --blue: #5b6eff;
-  --blue-deep: #3b4cca;
-  --blue-light: #8d9cff;
+  --blue: #4f63f5;
+  --blue-deep: #2f3fc4;
+  --blue-light: #8a98ff;
 
   --yellow: #ffcb05;
   --yellow-deep: #d9ab00;
@@ -38,10 +38,9 @@
   --footer-bg: #1a1a2e;
   --footer-text: #ffffff;
 
-  --font-display: 'Playfair Display', 'Times New Roman', Georgia, serif;
-  --font-body: 'Inter', -apple-system, system-ui, sans-serif;
-  --font-mono: 'Inter', -apple-system, system-ui, sans-serif;
-  --font-italic: 'Fraunces', Georgia, serif;
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Manrope', -apple-system, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 
   --radius-sm: 8px;
   --radius: 12px;
@@ -68,9 +67,9 @@
   --red-deep: #c91230;
   --red-light: #ff6b85;
 
-  --blue: #7a8aff;
-  --blue-deep: #5b6eff;
-  --blue-light: #a3b0ff;
+  --blue: #6577ff;
+  --blue-deep: #3b4cca;
+  --blue-light: #8d9cff;
 
   --yellow: #ffd633;
   --yellow-deep: #ffcb05;
@@ -122,13 +121,11 @@ html, body {
   color: var(--ink);
   font-family: var(--font-body);
   font-size: 15px;
-  font-weight: 400;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  line-height: 1.55;
+  line-height: 1.5;
   scroll-behavior: smooth;
   transition: background 0.25s ease, color 0.25s ease;
-  letter-spacing: -0.005em;
 }
 
 a { color: inherit; text-decoration: none; }
@@ -142,38 +139,31 @@ img { display: block; max-width: 100%; }
 
 .display-1 {
   font-family: var(--font-display);
-  font-weight: 800;
+  font-weight: 900;
   font-size: clamp(40px, 6vw, 88px);
-  line-height: 1.0;
-  letter-spacing: -0.025em;
+  line-height: 0.95;
+  letter-spacing: -0.04em;
   color: var(--ink);
 }
 .display-2 {
   font-family: var(--font-display);
-  font-weight: 700;
+  font-weight: 800;
   font-size: clamp(28px, 4vw, 48px);
-  line-height: 1.1;
-  letter-spacing: -0.02em;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
   color: var(--ink);
 }
 .display-3 {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: clamp(22px, 2.5vw, 32px);
-  line-height: 1.2;
-  letter-spacing: -0.015em;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
   color: var(--ink);
 }
 
-.italic-accent { font-family: var(--font-italic); font-style: italic; font-weight: 400; color: var(--red); }
-.italic-blue { font-family: var(--font-italic); font-style: italic; font-weight: 400; color: var(--blue); }
-
-/* Universal italic accent (used inside hero titles) */
-h1 .accent, h2 .accent, .display-1 .accent, .display-2 .accent {
-  font-family: var(--font-italic);
-  font-style: italic;
-  font-weight: 400;
-}
+.italic-accent { font-style: italic; font-weight: 300; color: var(--red); }
+.italic-blue { font-style: italic; font-weight: 300; color: var(--blue); }
 
 .eyebrow {
   font-family: var(--font-mono);
@@ -467,138 +457,10 @@ footer {
   color: rgba(255, 255, 255, 0.5);
 }
 
-/* ============================================ MOBILE MENU TOGGLE ============================================ */
-.mobile-menu-toggle {
-  display: none;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--gray-bg);
-  border: 1.5px solid var(--gray-line);
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-direction: column;
-  gap: 5px;
-  transition: all 0.2s;
-}
-.mobile-menu-toggle:hover { background: var(--ink); }
-.mobile-menu-toggle span {
-  width: 18px;
-  height: 2px;
-  background: var(--ink);
-  transition: all 0.3s;
-  border-radius: 2px;
-}
-.mobile-menu-toggle:hover span { background: #fff; }
-.mobile-menu-toggle.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
-.mobile-menu-toggle.open span:nth-child(2) { opacity: 0; }
-.mobile-menu-toggle.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
-
-/* MOBILE DRAWER */
-.mobile-drawer {
-  position: fixed;
-  top: 0; right: 0;
-  width: 280px;
-  height: 100vh;
-  background: var(--white);
-  box-shadow: -10px 0 30px rgba(0,0,0,0.1);
-  z-index: 999;
-  transform: translateX(100%);
-  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-  padding: 80px 24px 24px;
-  overflow-y: auto;
-}
-.mobile-drawer.open { transform: translateX(0); }
-.mobile-drawer-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  z-index: 998;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s;
-}
-.mobile-drawer-overlay.open { opacity: 1; pointer-events: auto; }
-.mobile-drawer ul { list-style: none; padding: 0; margin: 0 0 24px; }
-.mobile-drawer ul a {
-  display: flex;
-  align-items: center;
-  padding: 14px 18px;
-  border-radius: var(--radius);
-  font-weight: 700;
-  font-size: 16px;
-  color: var(--ink);
-  margin-bottom: 4px;
-  transition: background 0.2s;
-}
-.mobile-drawer ul a:hover { background: var(--gray-bg); }
-.mobile-drawer ul a.active { background: var(--red); color: #fff; }
-.mobile-drawer-section {
-  padding: 16px 18px;
-  border-top: 1px solid var(--gray-line);
-  margin-top: 16px;
-}
-.mobile-drawer-section .btn { width: 100%; margin-bottom: 8px; }
-.mobile-drawer-search {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  background: var(--gray-bg);
-  border-radius: var(--radius-pill);
-  margin-bottom: 24px;
-}
-.mobile-drawer-search input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  outline: none;
-  font-family: var(--font-body);
-  font-size: 14px;
-  color: var(--ink);
-}
-
-/* ============================================ MEDIA QUERIES ============================================ */
-
 @media (max-width: 900px) {
   .nav-search { display: none; }
   .nav-links { display: none; }
-  .mobile-menu-toggle { display: flex; }
-  .nav-inner {
-    grid-template-columns: auto 1fr auto;
-    gap: 12px;
-    padding: 12px 16px;
-  }
-  .nav-cta .btn-ghost,
-  .nav-cta .btn-primary,
-  .nav-cta .nav-user { display: none; }
   .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
-  .container { padding: 0 16px; }
-
-  /* Hero/sections smaller */
-  .block { padding: 50px 0; }
-  .display-1 { font-size: clamp(32px, 8vw, 48px) !important; }
-  .display-2 { font-size: clamp(24px, 6vw, 36px) !important; }
-}
-
-@media (max-width: 600px) {
-  /* Even tighter */
-  .footer-grid { grid-template-columns: 1fr; }
-  .footer-bottom { flex-direction: column; gap: 8px; text-align: center; }
-
-  /* Pokemon grid: 2 cols min */
-  .pokemon-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
-  .collections-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
-
-  /* Smaller card metadata */
-  .pkmn-card-name { font-size: 12px !important; }
-  .pkmn-card-set { font-size: 8px !important; }
-  .pkmn-card-price { font-size: 14px !important; }
-
-  /* Fav/owned toggles smaller */
-  .fav-toggle { width: 26px !important; height: 26px !important; font-size: 13px !important; }
-  .owned-toggle { padding: 2px 6px !important; font-size: 8px !important; }
 }
 
 /* ============================================ BLOCKS ============================================ */

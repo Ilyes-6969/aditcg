@@ -16,7 +16,7 @@
 <title>Échanges — ADITCG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,800;0,900;1,400&family=Inter:wght@400;500;600;700;800;900&family=Fraunces:ital,opsz,wght@1,9..144,300;1,9..144,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,700;0,9..144,800;0,9..144,900;1,9..144,300&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <style>
   .page-head {
@@ -366,22 +366,10 @@
     .composer-divider { transform: rotate(90deg); padding: 16px; }
     .trade-card { grid-template-columns: 1fr; }
     .trade-cards-row { grid-template-columns: 1fr; }
-    .history-row { grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px 14px; font-size: 13px; }
+    .history-row { grid-template-columns: 1fr 1fr; gap: 8px; }
     .history-row.head { display: none; }
-    .composer-head { flex-direction: column; align-items: flex-start; gap: 12px; }
-    .composer-head h2 { font-size: 22px; }
-    .slot-grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
-    .composer-side { padding: 16px; }
-  }
-
-  @media (max-width: 500px) {
-    .slot-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-    .composer-foot { flex-direction: column; gap: 10px; }
-    .composer-foot .btn { width: 100%; }
   }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase-client.js"></script>
 </head>
 <body>
 
@@ -563,7 +551,7 @@
       <div class="footer-col"><h5>Compte</h5><ul><li><a href="profil.html">Collection</a></li></ul></div>
       <div class="footer-col"><h5>Support</h5><ul><li><a href="#">FAQ</a></li></ul></div>
     </div>
-    <div class="footer-bottom"><div>© 2026 ADITCG · Plateforme indépendante de revente entre particuliers · Non affiliée à Nintendo, The Pokémon Company ou Game Freak. Pokémon™ et tous les noms de personnages associés sont des marques déposées de Nintendo / Game Freak / The Pokémon Company.</div><div>Données : TCGdex</div></div>
+    <div class="footer-bottom"><div>© 2026 ADITCG</div><div>Données : TCGdex</div></div>
   </div>
 </footer>
 
