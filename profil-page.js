@@ -1,6 +1,11 @@
 // PROFIL-PAGE.JS — Logique de la page profil
 (async () => {
 
+  // Wait for Auth to be ready (Supabase init is async)
+  if (window.Auth?.init) {
+    await window.Auth.init();
+  }
+
   // 1. UPDATE HEADER from current user
   const user = window.Auth.getCurrentUser();
   if (user) {

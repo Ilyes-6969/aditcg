@@ -15,35 +15,40 @@
 // ============================================
 // INIT — récupère la session existante au chargement
 // ============================================
-async function initAuth() {
-  const sb = window.SupabaseClient?.client;
-  if (!sb) {
-    console.error('Supabase pas initialisé');
-    return;
-  }
+let _initPromise = null;
+function initAuth() {
+  if (_initPromise) return _initPromise;
+  _initPromise = (async () => {
+    const sb = window.SupabaseClient?.client;
+    if (!sb) {
+      console.error('Supabase pas initialisé');
+      return;
+    }
 
-  // Get current session
-  const { data: { session } } = await sb.auth.getSession();
-  if (session?.user) {
-    _currentUser = session.user;
-    await loadProfile();
-  }
-
-  // Listen to auth state changes
-  sb.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'SIGNED_IN' && session?.user) {
-      _currentUser = session.user;
-      await loadProfile();
-      _authListeners.forEach(cb => cb('signed_in', _currentUser));
-    } else if (event === 'SIGNED_OUT') {
-      _currentUser = null;
-      _currentProfile = null;
-      _authListeners.forEach(cb => cb('signed_out'));
-    } else if (event === 'USER_UPDATED' && session?.user) {
+    // Get current session
+    const { data: { session } } = await sb.auth.getSession();
+    if (session?.user) {
       _currentUser = session.user;
       await loadProfile();
     }
-  });
+
+    // Listen to auth state changes (once)
+    sb.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        _currentUser = session.user;
+        await loadProfile();
+        _authListeners.forEach(cb => cb('signed_in', _currentUser));
+      } else if (event === 'SIGNED_OUT') {
+        _currentUser = null;
+        _currentProfile = null;
+        _authListeners.forEach(cb => cb('signed_out'));
+      } else if (event === 'USER_UPDATED' && session?.user) {
+        _currentUser = session.user;
+        await loadProfile();
+      }
+    });
+  })();
+  return _initPromise;
 }
 
 async function loadProfile() {
