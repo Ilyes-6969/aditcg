@@ -609,21 +609,62 @@
   </div>
 </section>
 
-<!-- HOT CARDS -->
+<!-- ENCHÈRES & ANNONCES (style GCC) -->
 <section class="hot-section">
   <div class="container">
-    <div class="section-header-row" style="margin-bottom: 36px;">
+    <div class="section-header-row" style="margin-bottom: 28px;">
       <div>
-        <div class="eyebrow">⚡ Cartes en feu</div>
-        <h2 class="display-2" style="margin-top: 16px;">Top <span class="italic-accent">trending</span> Pokémon</h2>
+        <div class="eyebrow">★ Marketplace</div>
+        <h2 class="display-2" style="margin-top: 16px;">Enchères <span class="italic-accent">en cours</span></h2>
       </div>
-      <p>Les cartes les plus échangées et les plus chères du moment, mises à jour depuis les ventes réelles.</p>
+      <p>Cartes gradées PSA, PCA et exemplaires bruts mis aux enchères ou à l'achat immédiat. Mise à jour temps réel.</p>
     </div>
-    <div class="hot-grid" id="hot-grid">
+
+    <!-- ROOMS : 3 types d'enchères -->
+    <div class="auction-rooms" id="auction-rooms">
+      <a class="auction-room weekly" href="marche.html">
+        <span class="kind live">LIVE · Weekly</span>
+        <h3>Weekly Auction</h3>
+        <div class="desc">L'enchère hebdomadaire phare. Les meilleures pièces de la communauté française, fin chaque dimanche à 17h.</div>
+        <div class="stats">
+          <div class="stat"><div class="v" id="weekly-count">—</div><div class="l">Lots</div></div>
+          <div class="stat"><div class="v" id="weekly-bids">—</div><div class="l">Enchères</div></div>
+        </div>
+        <div class="countdown-big" id="weekly-cd">—</div>
+      </a>
+
+      <a class="auction-room premium" href="marche.html">
+        <span class="kind">PREMIUM</span>
+        <h3>Premium Auction</h3>
+        <div class="desc">Le bloc d'enchères mensuel pour les pièces de collection les plus rares et exceptionnelles.</div>
+        <div class="stats">
+          <div class="stat"><div class="v" id="premium-count">—</div><div class="l">Lots</div></div>
+          <div class="stat"><div class="v" id="premium-bids">—</div><div class="l">Enchères</div></div>
+        </div>
+        <div class="countdown-big" id="premium-cd">—</div>
+      </a>
+
+      <a class="auction-room event" href="marche.html">
+        <span class="kind">EVENT</span>
+        <h3>Vintage Showcase</h3>
+        <div class="desc">Enchères thématiques WOTC, Neo et e-Card. Cartes gradées et scellées d'avant 2003.</div>
+        <div class="stats">
+          <div class="stat"><div class="v" id="event-count">—</div><div class="l">Lots</div></div>
+          <div class="stat"><div class="v" id="event-bids">—</div><div class="l">Enchères</div></div>
+        </div>
+        <div class="countdown-big" id="event-cd">—</div>
+      </a>
+    </div>
+
+    <!-- LISTINGS -->
+    <div class="auction-grid" id="hot-grid">
       <div class="loading-state" style="grid-column: 1/-1;">
         <div class="pokeball-loader"></div>
-        Chargement des cartes vedettes…
+        Chargement des annonces…
       </div>
+    </div>
+    <div style="text-align: center; margin-top: 40px;">
+      <a href="marche.html" class="btn btn-dark btn-large">Voir tout le marché →</a>
     </div>
   </div>
 </section>
@@ -711,6 +752,7 @@
 <script src="auth.js"></script>
 <script src="storage.js"></script>
 <script src="tcgdex-api.js"></script>
+<script src="auctions.js"></script>
 <script src="ui.js"></script>
 <script src="app.js"></script>
 <script>
@@ -844,6 +886,8 @@
       'base1-58',    // Pikachu Base
       'neo1-1',
       'xy12-11',
+      'base1-3',
+      'base1-25',
     ];
     const el = document.getElementById('hot-grid');
     if (!el) return;
@@ -852,32 +896,112 @@
       const valid = settled
         .filter(r => r.status === 'fulfilled' && r.value)
         .map(r => r.value)
-        .slice(0, 8);
+        .slice(0, 10);
       if (valid.length === 0) throw new Error('No cards');
-      el.innerHTML = valid.map(card => {
-        const img = window.TCGdex.getCardImage(card, 'low', 'webp');
-        const price = window.TCGdex.estimatePrice(card);
-        const trend = window.TCGdex.estimateTrend(card);
-        return `
-          <a href="carte.html?id=${card.id}" class="hot-card">
-            <div class="hot-card-img">
-              <img src="${img}" alt="${card.name}" loading="lazy"
-                onerror="this.parentNode.innerHTML='<div class=&quot;skel&quot;></div>'">
-            </div>
-            <div class="hot-card-info">
-              <div class="hot-card-name">${card.name}</div>
-              <div class="hot-card-set">${card.set?.name || ''}</div>
-              <div class="hot-card-foot">
-                <div class="hot-card-price">${window.TCGdex.formatPrice(price)}</div>
-                <div class="hot-card-trend ${trend >= 0 ? '' : 'down'}">${trend >= 0 ? '↑' : '↓'} ${Math.abs(trend)}%</div>
-              </div>
-            </div>
-          </a>`;
-      }).join('');
+
+      el.innerHTML = valid.map(card => renderAuctionCard(card)).join('');
+
+      // Populate auction room stats
+      const totalLots = 1247 + (Date.now() % 200);
+      const totalBids = 8421;
+      document.getElementById('weekly-count').textContent = '635';
+      document.getElementById('weekly-bids').textContent = '4 280';
+      document.getElementById('weekly-cd').textContent = window.Auctions.formatCountdown(getNextSundayAt17());
+      document.getElementById('premium-count').textContent = '57';
+      document.getElementById('premium-bids').textContent = '892';
+      document.getElementById('premium-cd').textContent = window.Auctions.formatCountdown(getNextMonthEnd());
+      document.getElementById('event-count').textContent = '288';
+      document.getElementById('event-bids').textContent = '1 410';
+      document.getElementById('event-cd').textContent = window.Auctions.formatCountdown(getNextSundayAt17() + 2 * 86400000);
+
+      // Auto-refresh countdowns every minute
+      setInterval(() => {
+        document.querySelectorAll('[data-countdown]').forEach(el => {
+          const t = parseInt(el.dataset.countdown, 10);
+          if (!t) return;
+          el.textContent = window.Auctions.formatCountdown(t);
+        });
+      }, 60000);
+
     } catch (e) {
       console.error(e);
-      el.innerHTML = '<div class="empty-state"><div class="emoji">🃏</div><h3>Cartes indisponibles</h3><p>Réessayez dans un instant.</p></div>';
+      el.innerHTML = '<div class="empty-state"><div class="emoji">🃏</div><h3>Annonces indisponibles</h3><p>Réessayez dans un instant.</p></div>';
     }
+  }
+
+  // ============================================
+  // RENDER : carte annonce style GCC
+  // ============================================
+  function renderAuctionCard(card) {
+    const img = window.TCGdex.getCardImage(card, 'low', 'webp');
+    const listing = window.Auctions.getListing(card);
+    if (!listing) return '';
+    const status = window.Auctions.getAuctionStatus(listing.endsAt);
+    const isLive = status === 'live';
+    const isAuction = listing.type === 'auction';
+    const initials = window.Auctions.sellerInitials(listing.seller.name);
+    const cdText = isAuction ? window.Auctions.formatCountdown(listing.endsAt) : 'Achat immédiat';
+    const cdClass = isLive ? 'urgent' : '';
+    const badge = isLive
+      ? `<span class="auction-badge live">LIVE</span>`
+      : isAuction
+        ? `<span class="auction-badge soon">${listing.kind === 'Premium Auction' ? 'PREMIUM' : 'AUCTION'}</span>`
+        : `<span class="auction-badge fixed">Achat direct</span>`;
+    const gradeStyle = `color:${listing.grade.color};border-color:${listing.grade.color};`;
+
+    return `
+      <a href="carte.html?id=${card.id}" class="auction-card">
+        <div class="auction-card-img">
+          <div class="auction-badge-row">
+            ${badge}
+            <span class="auction-badge grade" style="${gradeStyle}">${listing.grade.label}</span>
+          </div>
+          <img src="${img}" alt="${escapeHtml(card.name)}" loading="lazy"
+            onerror="this.outerHTML='<div class=&quot;ph&quot;>${escapeHtml(card.name).slice(0, 20)}</div>'">
+        </div>
+        <div class="auction-card-body">
+          <div>
+            <div class="auction-card-title">${escapeHtml(card.name)}</div>
+            <div class="auction-card-meta">
+              <span>${escapeHtml((card.set?.name || '').slice(0, 22))}</span>
+              <span>#${card.localId || '?'}</span>
+            </div>
+          </div>
+          <div class="auction-seller">
+            <div class="auction-seller-avatar" style="background:${listing.seller.avatarColor};">${initials}</div>
+            <div style="min-width:0;">
+              <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(listing.seller.name)}</div>
+              <div class="meta">⭐ ${listing.seller.rating} · ${listing.seller.sales} ventes</div>
+            </div>
+          </div>
+          <div class="auction-bid-row">
+            <div>
+              <div class="label">${isAuction ? `Enchère actuelle · ${listing.bidCount} bids` : 'Prix de vente'}</div>
+              <div class="auction-price ${isLive ? 'live' : ''}">${window.TCGdex.formatPrice(isAuction ? listing.currentBid : listing.price)}</div>
+            </div>
+            <div class="countdown ${cdClass}" data-countdown="${listing.endsAt || ''}">${cdText}</div>
+          </div>
+        </div>
+      </a>`;
+  }
+
+  function escapeHtml(s) {
+    return (s || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  }
+
+  function getNextSundayAt17() {
+    const d = new Date();
+    const day = d.getDay();
+    const daysUntilSunday = (7 - day) % 7 || 7;
+    d.setDate(d.getDate() + daysUntilSunday);
+    d.setHours(17, 0, 0, 0);
+    return d.getTime();
+  }
+  function getNextMonthEnd() {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 1, 0);
+    d.setHours(21, 0, 0, 0);
+    return d.getTime();
   }
 
   // Run all in parallel

@@ -306,7 +306,7 @@
           </select>
         </div>
 
-        <div class="pokemon-grid" id="market-grid">
+        <div class="auction-grid" id="market-grid">
           <div class="loading-state" style="grid-column: 1/-1;">
             <div class="pokeball-loader"></div>
             Chargement des cartes en vente…
@@ -333,6 +333,7 @@
 <script src="auth.js"></script>
 <script src="storage.js"></script>
 <script src="tcgdex-api.js"></script>
+<script src="auctions.js"></script>
 <script src="ui.js"></script>
 <script src="app.js"></script>
 <script>
@@ -483,35 +484,83 @@
       return;
     }
 
-    grid.innerHTML = display.map((c, i) => {
-      const img = window.TCGdex.getCardImage(c, 'low', 'webp');
-      const price = window.TCGdex.estimatePrice(c);
-      const trend = window.TCGdex.estimateTrend(c);
-      const badges = ['sale', 'trade', 'psa', null, null];
-      const badge = badges[i % badges.length];
-      const isFav = window.Storage.isFavorite(c.id);
-      return `
-        <div class="pkmn-card" style="position: relative;">
-          <button class="fav-toggle ${isFav ? 'active' : ''}" data-fav-id="${c.id}" aria-label="Favori"></button>
-          ${badge ? `<div class="pkmn-card-badge ${badge}" style="top: 8px; left: 8px;">${badge === 'sale' ? 'À vendre' : badge === 'trade' ? 'Échange' : 'PSA'}</div>` : ''}
-          <a href="carte.html?id=${c.id}" style="display: block; color: inherit;">
-            <div class="pkmn-card-img">
-              <img src="${img}" alt="${c.name}" loading="lazy"
-                onerror="this.parentNode.innerHTML='<div class=&quot;skel&quot;></div>'">
-            </div>
-            <div class="pkmn-card-info">
-              <div class="pkmn-card-name">${c.name}</div>
-              <div class="pkmn-card-set">${(c._setName || c.set?.name || '').substring(0, 24)}</div>
-              <div class="pkmn-card-foot">
-                <div class="pkmn-card-price">${window.TCGdex.formatPrice(price)}</div>
-                <div class="pkmn-card-trend ${trend >= 0 ? '' : 'down'}">${trend >= 0 ? '↑' : '↓'}${Math.abs(trend)}%</div>
-              </div>
-            </div>
-          </a>
-          <button class="btn btn-primary btn-small market-buy-btn" data-buy-id="${c.id}" style="width: calc(100% - 16px); margin: 0 8px 10px; font-size: 11px;">Acheter ${window.TCGdex.formatPrice(price)}</button>
-        </div>`;
-    }).join('');
+    grid.innerHTML = display.map((c, i) => renderAuctionCardMarche(c)).join('');
   }
+
+  function escapeHtml(s) {
+    return (s || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  }
+
+  function renderAuctionCardMarche(card) {
+    const img = window.TCGdex.getCardImage(card, 'low', 'webp');
+    const listing = window.Auctions.getListing(card);
+    if (!listing) return '';
+    const status = window.Auctions.getAuctionStatus(listing.endsAt);
+    const isLive = status === 'live';
+    const isAuction = listing.type === 'auction';
+    const initials = window.Auctions.sellerInitials(listing.seller.name);
+    const cdText = isAuction ? window.Auctions.formatCountdown(listing.endsAt) : 'Achat immédiat';
+    const cdClass = isLive ? 'urgent' : '';
+    const badge = isLive
+      ? '<span class="auction-badge live">LIVE</span>'
+      : isAuction
+        ? `<span class="auction-badge soon">${listing.kind === 'Premium Auction' ? 'PREMIUM' : 'AUCTION'}</span>`
+        : '<span class="auction-badge fixed">Achat direct</span>';
+    const gradeStyle = `color:${listing.grade.color};border-color:${listing.grade.color};`;
+    const isFav = window.Storage.isFavorite(card.id);
+
+    return `
+      <a href="carte.html?id=${card.id}" class="auction-card">
+        <div class="auction-card-img">
+          <div class="auction-badge-row">
+            ${badge}
+            <span class="auction-badge grade" style="${gradeStyle}">${listing.grade.label}</span>
+          </div>
+          <button class="auction-fav ${isFav ? 'active' : ''}" data-fav-id="${card.id}" aria-label="Favori" type="button" onclick="event.preventDefault();event.stopPropagation();window.__toggleFav&&window.__toggleFav('${card.id}',this);"></button>
+          <img src="${img}" alt="${escapeHtml(card.name)}" loading="lazy"
+            onerror="this.outerHTML='<div class=&quot;ph&quot;>${escapeHtml(card.name).slice(0, 20)}</div>'">
+        </div>
+        <div class="auction-card-body">
+          <div>
+            <div class="auction-card-title">${escapeHtml(card.name)}</div>
+            <div class="auction-card-meta">
+              <span>${escapeHtml((card._setName || card.set?.name || '').slice(0, 22))}</span>
+              <span>#${card.localId || '?'}</span>
+            </div>
+          </div>
+          <div class="auction-seller">
+            <div class="auction-seller-avatar" style="background:${listing.seller.avatarColor};">${initials}</div>
+            <div style="min-width:0;">
+              <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(listing.seller.name)}</div>
+              <div class="meta">⭐ ${listing.seller.rating} · ${listing.seller.city}</div>
+            </div>
+          </div>
+          <div class="auction-bid-row">
+            <div>
+              <div class="label">${isAuction ? `Enchère · ${listing.bidCount} bids` : 'Prix de vente'}</div>
+              <div class="auction-price ${isLive ? 'live' : ''}">${window.TCGdex.formatPrice(isAuction ? listing.currentBid : listing.price)}</div>
+            </div>
+            <div class="countdown ${cdClass}" data-countdown="${listing.endsAt || ''}">${cdText}</div>
+          </div>
+        </div>
+      </a>`;
+  }
+
+  // Toggle fav handler exposed for inline onclick
+  window.__toggleFav = function(id, btn) {
+    const now = window.Storage.toggleFavorite(id);
+    btn.classList.toggle('active', now);
+    window.UI.toast(now ? 'Ajouté aux favoris ♥' : 'Retiré des favoris', now ? 'success' : 'info');
+  };
+
+  // Auto-refresh countdowns every minute
+  setInterval(() => {
+    document.querySelectorAll('[data-countdown]').forEach(el => {
+      const t = parseInt(el.dataset.countdown, 10);
+      if (!t) return;
+      el.textContent = window.Auctions.formatCountdown(t);
+    });
+  }, 60000);
 
   // ============================================
   // FILTER HANDLERS
