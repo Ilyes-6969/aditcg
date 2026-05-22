@@ -1,17 +1,17 @@
 /* ============================================
    ADITCG — Design System Pokémon
-   Sombre premium (inspiré gradedcardcenter.com)
+   Rouge Pokéball + Bleu Pokémon + Blanc + Jaune éclair
 ============================================ */
 
 :root {
-  /* COULEURS POKÉMON */
+  /* COULEURS POKÉMON — invariantes light/dark */
   --red: #dc0a2d;
   --red-deep: #a30821;
   --red-light: #ff3554;
 
-  --blue: #4f63f5;
-  --blue-deep: #2f3fc4;
-  --blue-light: #8a98ff;
+  --blue: #5b8def;
+  --blue-deep: #3a6fd6;
+  --blue-light: #a3c2ff;
 
   --yellow: #ffcb05;
   --yellow-deep: #d9ab00;
@@ -32,15 +32,14 @@
   --green: #00b894;
   --green-light: #e6f9f3;
   --orange: #ff6b35;
-  --gold: #b8902f;
 
   /* Aliases sémantiques pour themability */
   --topbar-bg: rgba(255, 255, 255, 0.92);
   --footer-bg: #1a1a2e;
   --footer-text: #ffffff;
 
-  --font-display: 'Fraunces', Georgia, serif;
-  --font-body: 'Manrope', -apple-system, system-ui, sans-serif;
+  --font-display: 'Albert Sans', 'Manrope', -apple-system, system-ui, sans-serif;
+  --font-body: 'Albert Sans', 'Manrope', -apple-system, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
   --radius-sm: 8px;
@@ -54,57 +53,55 @@
   --shadow-lg: 0 12px 32px rgba(26, 26, 46, 0.12);
   --shadow-xl: 0 24px 60px rgba(26, 26, 46, 0.18);
   --shadow-red: 0 8px 20px rgba(220, 10, 45, 0.25);
-  --shadow-blue: 0 8px 20px rgba(79, 99, 245, 0.30);
+  --shadow-blue: 0 8px 20px rgba(91, 141, 239, 0.30);
 
   --container: 1320px;
 }
 
 /* ============================================
-   MODE SOMBRE — Premium (presque noir)
+   MODE SOMBRE — Pokémon Night
 ============================================ */
 [data-theme="dark"] {
-  /* Accents Pokémon — calibrés pour un fond noir premium */
-  --red: #ff3b54;
-  --red-deep: #d81e3a;
-  --red-light: #ff7184;
+  /* Couleurs Pokémon boostées en sombre */
+  --red: #ff2e4f;
+  --red-deep: #c91230;
+  --red-light: #ff6b85;
 
-  --blue: #6b7cff;
-  --blue-deep: #4453d4;
-  --blue-light: #95a2ff;
+  --blue: #82a8ff;
+  --blue-deep: #5b8def;
+  --blue-light: #b5cfff;
 
-  --yellow: #ffd23f;
-  --yellow-deep: #f0bc1a;
-  --yellow-light: #ffe27a;
+  --yellow: #ffd633;
+  --yellow-deep: #ffcb05;
+  --yellow-light: #ffe066;
 
-  --gold: #e8c46a;          /* accent premium */
+  /* Fond et surfaces — noir GCC, presque noir avec une pointe de violet */
+  --white: #14141c;          /* surface principale (cards) */
+  --cream: #0a0a12;          /* fond global (page) */
+  --gray-bg: #1c1c28;        /* surface élevée */
+  --gray-line: #2a2a3a;      /* bordures */
+  --gray-text: #9ea0b8;
+  --gray-text-2: #6b6e8a;
+  --gray-dark: #c8cae0;
 
-  /* Surfaces — noir premium */
-  --white: #16161e;          /* surface / cartes */
-  --cream: #0a0a0f;          /* fond global, presque noir */
-  --gray-bg: #1f1f2a;        /* surface élevée */
-  --gray-line: #2c2c3a;      /* bordures discrètes */
-  --gray-text: #9090a2;
-  --gray-text-2: #5f5f70;
-  --gray-dark: #d2d2de;
+  --ink: #f5f5fa;            /* texte principal */
+  --ink-soft: #d4d6e5;
 
-  --ink: #f3f3f8;            /* texte principal */
-  --ink-soft: #cbcbd8;
-
-  --green: #1fd695;
-  --green-light: rgba(31, 214, 149, 0.14);
+  --green: #00d49a;
+  --green-light: rgba(0, 184, 148, 0.15);
 
   /* Aliases */
-  --topbar-bg: rgba(10, 10, 15, 0.88);
-  --footer-bg: #060609;
-  --footer-text: #f3f3f8;
+  --topbar-bg: rgba(13, 13, 26, 0.92);
+  --footer-bg: #050510;
+  --footer-text: #f5f5fa;
 
-  /* Ombres profondes */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
-  --shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
-  --shadow-xl: 0 28px 70px rgba(0, 0, 0, 0.7);
-  --shadow-red: 0 8px 24px rgba(255, 59, 84, 0.3);
-  --shadow-blue: 0 8px 24px rgba(107, 124, 255, 0.3);
+  /* Shadows plus subtiles en sombre */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 24px 60px rgba(0, 0, 0, 0.6);
+  --shadow-red: 0 8px 20px rgba(255, 46, 79, 0.35);
+  --shadow-blue: 0 8px 20px rgba(101, 119, 255, 0.35);
 }
 
 /* Transitions thème */
@@ -113,7 +110,7 @@ html, body, .topbar, .coll-card, .pkmn-card, .stat-card,
 .card-details, .stats-section, .price-hero, .trade-composer,
 .history-table, .big-card-img, .nav-search, .sort-select,
 .completion-bar, .portfolio-chart, .top-holdings, .hot-card,
-.trade-card, .mini-card, .auction-card, footer {
+.trade-card, .mini-card, footer {
   transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
 }
 
@@ -208,8 +205,8 @@ img { display: block; max-width: 100%; }
   top: 0;
   z-index: 100;
   background: var(--topbar-bg);
-  border-bottom: 1px solid var(--gray-line);
-  backdrop-filter: blur(14px);
+  border-bottom: 2px solid var(--gray-line);
+  backdrop-filter: blur(12px);
 }
 
 .nav-inner {
@@ -270,7 +267,7 @@ img { display: block; max-width: 100%; }
   align-items: center;
 }
 .nav-links a {
-  padding: 8px 14px;
+  padding: 8px 16px;
   border-radius: var(--radius-pill);
   font-weight: 600;
   font-size: 14px;
@@ -287,7 +284,7 @@ img { display: block; max-width: 100%; }
   display: flex;
   align-items: center;
   padding: 0 16px;
-  min-width: 220px;
+  min-width: 260px;
   border: 1.5px solid transparent;
   transition: all 0.2s;
 }
@@ -323,13 +320,13 @@ img { display: block; max-width: 100%; }
 }
 .btn-primary {
   background: var(--red);
-  color: #fff;
+  color: var(--white);
   box-shadow: var(--shadow-red);
 }
 .btn-primary:hover { background: var(--red-deep); transform: translateY(-1px); }
 .btn-secondary {
   background: var(--blue);
-  color: #fff;
+  color: var(--white);
   box-shadow: var(--shadow-blue);
 }
 .btn-secondary:hover { background: var(--blue-deep); transform: translateY(-1px); }
@@ -347,11 +344,6 @@ img { display: block; max-width: 100%; }
 .btn-ghost:hover { border-color: var(--ink); }
 .btn-dark { background: var(--ink); color: var(--white); }
 .btn-dark:hover { background: var(--ink-soft); transform: translateY(-1px); }
-.btn-gold {
-  background: linear-gradient(135deg, #f3d178, var(--gold));
-  color: #2a2008;
-}
-.btn-gold:hover { transform: translateY(-1px); }
 .btn-small { padding: 8px 16px; font-size: 13px; }
 .btn-large { padding: 16px 32px; font-size: 16px; }
 
@@ -371,7 +363,7 @@ img { display: block; max-width: 100%; }
   letter-spacing: 0.05em;
 }
 .tag.red { background: rgba(220, 10, 45, 0.1); color: var(--red); }
-.tag.blue { background: rgba(79, 99, 245, 0.12); color: var(--blue); }
+.tag.blue { background: rgba(59, 76, 202, 0.1); color: var(--blue); }
 .tag.yellow { background: rgba(255, 203, 5, 0.18); color: var(--yellow-deep); }
 .tag.green { background: var(--green-light); color: var(--green); }
 .tag.dark { background: var(--ink); color: var(--white); }
@@ -465,7 +457,7 @@ footer {
   color: rgba(255, 255, 255, 0.5);
 }
 
-@media (max-width: 1040px) {
+@media (max-width: 900px) {
   .nav-search { display: none; }
   .nav-links { display: none; }
   .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
@@ -610,35 +602,6 @@ footer {
 [data-theme="dark"] .theme-toggle .icon-moon { display: block; }
 
 /* ============================================
-   NAV ICONS (favoris + panier)
-============================================ */
-.nav-icon-btn {
-  position: relative;
-  width: 38px; height: 38px;
-  border-radius: 50%;
-  background: var(--gray-bg);
-  border: 1.5px solid var(--gray-line);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 15px; color: var(--ink);
-  transition: all 0.2s;
-  flex-shrink: 0;
-}
-.nav-icon-btn:hover { border-color: var(--blue); transform: translateY(-1px); }
-.nav-icon-badge {
-  position: absolute;
-  top: -5px; right: -5px;
-  min-width: 18px; height: 18px;
-  padding: 0 4px;
-  background: var(--red); color: #fff;
-  border-radius: 9px;
-  font-family: var(--font-mono);
-  font-size: 9px; font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
-  border: 2px solid var(--white);
-}
-.nav-icon-badge.hidden { display: none; }
-
-/* ============================================
    PRICE BADGES (real vs estimated source)
 ============================================ */
 .price-source-badge {
@@ -668,12 +631,28 @@ footer {
   background: currentColor;
 }
 
-/* Couleurs hover/text adaptées en dark */
-[data-theme="dark"] .feature-tile { background: var(--gray-bg); }
-[data-theme="dark"] .feature-tile:hover { background: var(--white); }
-[data-theme="dark"] .stat-card { background: var(--gray-bg); }
-[data-theme="dark"] .ticker { background: #060609; }
-[data-theme="dark"] .empty-state { background: var(--gray-bg); }
+/* Couleurs hover/text adaptées en dark pour quelques éléments */
+[data-theme="dark"] .feature-tile {
+  background: var(--surface-2, var(--gray-bg));
+}
+[data-theme="dark"] .feature-tile:hover {
+  background: var(--white);
+}
+[data-theme="dark"] .stat-card {
+  background: var(--gray-bg);
+}
+
+/* Le ticker reste sombre dans les deux thèmes (déjà sombre) */
+[data-theme="dark"] .ticker {
+  background: #050510;
+}
+
+/* Empty states background en dark */
+[data-theme="dark"] .empty-state {
+  background: var(--gray-bg);
+}
+
+/* Filter chips */
 [data-theme="dark"] .filter-chip {
   background: var(--gray-bg);
   border-color: var(--gray-line);
@@ -685,57 +664,20 @@ footer {
   border-color: var(--blue);
   color: #fff;
 }
+
+/* Active nav link en dark */
 [data-theme="dark"] .nav-links a.active {
   background: var(--blue);
   color: #fff;
 }
+
+/* Sidebar inputs dark */
 [data-theme="dark"] .sidebar { background: var(--white); border-color: var(--gray-line); }
+
+/* Tab btn en dark */
 [data-theme="dark"] .tab-btn .badge { background: var(--gray-bg); }
 [data-theme="dark"] .tab-btn.active .badge { background: var(--red); }
 
-/* ============================================
-   PANIER (cart modal)
-============================================ */
-.cart-item {
-  display: grid;
-  grid-template-columns: 46px 1fr auto auto;
-  gap: 12px; align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--gray-line);
-}
-.cart-item:last-child { border-bottom: none; }
-.cart-item-img {
-  width: 46px; height: 62px;
-  object-fit: contain;
-  background: var(--gray-bg);
-  border-radius: 6px; padding: 3px;
-}
-.cart-item-name { font-weight: 700; font-size: 14px; color: var(--ink); }
-.cart-item-grade {
-  font-family: var(--font-mono); font-size: 10px;
-  color: var(--gold); text-transform: uppercase; letter-spacing: 0.08em;
-  margin-top: 2px;
-}
-.cart-item-price { font-family: var(--font-display); font-weight: 800; color: var(--ink); font-size: 15px; }
-.cart-item-remove {
-  width: 28px; height: 28px; border-radius: 50%;
-  background: var(--gray-bg); color: var(--gray-text);
-  font-size: 16px; display: flex; align-items: center; justify-content: center;
-  transition: all 0.2s;
-}
-.cart-item-remove:hover { background: var(--red); color: #fff; }
-.cart-total-row {
-  display: flex; justify-content: space-between; align-items: baseline;
-  padding: 16px 0 4px; margin-top: 8px;
-  border-top: 2px solid var(--ink);
-}
-.cart-total-row .l {
-  font-family: var(--font-mono); font-size: 11px;
-  text-transform: uppercase; letter-spacing: 0.12em; color: var(--gray-text);
-}
-.cart-total-row .v { font-family: var(--font-display); font-size: 26px; font-weight: 900; color: var(--ink); }
-.cart-empty { text-align: center; padding: 40px 20px; color: var(--gray-text); }
-.cart-empty .emoji { font-size: 48px; margin-bottom: 12px; }
 
 /* ============================================
    AUCTION CARD — Style GCC (gradedcardcenter.com)
@@ -783,7 +725,6 @@ footer {
   background-size: 200% 100%;
   animation: skel 1.4s ease-in-out infinite;
 }
-@keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
 .auction-card-img .ph {
   display: flex;
@@ -858,7 +799,7 @@ footer {
   border: 1.5px solid;
 }
 [data-theme="dark"] .auction-badge.grade {
-  background: rgba(20, 20, 30, 0.95);
+  background: rgba(20, 20, 40, 0.95);
 }
 
 .auction-fav {
@@ -885,7 +826,7 @@ footer {
 .auction-fav::before { content: '♡'; }
 .auction-fav.active::before { content: '♥'; }
 [data-theme="dark"] .auction-fav {
-  background: rgba(20, 20, 30, 0.92);
+  background: rgba(20, 20, 40, 0.92);
   color: var(--gray-text);
 }
 
@@ -964,20 +905,7 @@ footer {
   color: var(--ink);
 }
 .auction-card-foot .countdown.urgent {
-  background: rgba(220, 10, 45, 0.12);
-  color: var(--red);
-}
-.auction-bid-row .countdown {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--ink);
-  background: var(--gray-bg);
-  padding: 4px 10px;
-  border-radius: var(--radius-pill);
-}
-.auction-bid-row .countdown.urgent {
-  background: rgba(220, 10, 45, 0.12);
+  background: rgba(220, 10, 45, 0.1);
   color: var(--red);
 }
 
@@ -1022,7 +950,7 @@ footer {
   .auction-price { font-size: 18px; }
 }
 
-/* AUCTION ROOM CARDS (style GCC) */
+/* AUCTION ROOM CARDS (carousel d'enchères en cours, style GCC) */
 .auction-rooms {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -1043,11 +971,11 @@ footer {
 .auction-room:hover {
   transform: translateY(-3px);
   box-shadow: 0 18px 50px rgba(0,0,0,0.4);
-  border-color: var(--gold);
+  border-color: var(--yellow);
 }
-.auction-room.weekly { background: linear-gradient(135deg, #14141c, #24242f); }
-.auction-room.premium { background: linear-gradient(135deg, #2e1a4d, #1c1033); }
-.auction-room.event { background: linear-gradient(135deg, #4a2f10, #2c1c0a); }
+.auction-room.weekly { background: linear-gradient(135deg, #1a1a2e, #2d3142); }
+.auction-room.premium { background: linear-gradient(135deg, #4a2575, #2f1851); }
+.auction-room.event { background: linear-gradient(135deg, #7a4515, #4a2a0d); }
 .auction-room::before {
   content: '';
   position: absolute;
@@ -1066,8 +994,8 @@ footer {
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  background: var(--gold);
-  color: #2a2008;
+  background: var(--yellow);
+  color: var(--ink);
   margin-bottom: 16px;
 }
 .auction-room .kind.live { background: var(--red); color: #fff; animation: liveBlink 2s ease-in-out infinite; }
@@ -1104,7 +1032,7 @@ footer {
   font-family: var(--font-display);
   font-size: 20px;
   font-weight: 800;
-  color: var(--gold);
+  color: var(--yellow);
 }
 .auction-room .stat .l {
   font-family: var(--font-mono);
@@ -1121,7 +1049,7 @@ footer {
   font-family: var(--font-mono);
   font-size: 12px;
   font-weight: 700;
-  color: var(--gold);
+  color: var(--yellow);
   background: rgba(0,0,0,0.35);
   padding: 6px 12px;
   border-radius: var(--radius-pill);

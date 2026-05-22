@@ -1,5 +1,5 @@
 // ============================================
-// UI.JS — Modals, toasts, panier, composants UI partagés
+// UI.JS — Modals, toasts, composants UI partagés
 // ============================================
 
 (() => {
@@ -120,7 +120,7 @@
       padding: 12px 16px;
       border: 1.5px solid var(--gray-line);
       border-radius: var(--radius);
-      background: var(--white);
+      background: var(--surface, var(--white));
       color: var(--ink);
       font-size: 15px;
       font-family: var(--font-body);
@@ -279,7 +279,6 @@
     .toast.success { border-left-color: var(--green); }
     .toast.error { border-left-color: var(--red); }
     .toast.warning { border-left-color: var(--yellow); }
-    [data-theme="dark"] .toast { background: var(--gray-bg); }
     .toast .icon {
       width: 28px; height: 28px;
       flex-shrink: 0;
@@ -319,8 +318,8 @@
     .fav-toggle:not(.active)::before { content: '♡'; }
 
     [data-theme="dark"] .fav-toggle {
-      background: rgba(20, 20, 30, 0.95);
-      color: #cbcbd8;
+      background: rgba(30, 30, 50, 0.95);
+      color: #d4d6e5;
     }
     [data-theme="dark"] .fav-toggle.active { color: var(--red); }
 
@@ -348,8 +347,8 @@
       color: #fff;
     }
     [data-theme="dark"] .owned-toggle {
-      background: rgba(20, 20, 30, 0.95);
-      color: #cbcbd8;
+      background: rgba(30, 30, 50, 0.95);
+      color: #d4d6e5;
     }
     [data-theme="dark"] .owned-toggle.active {
       background: var(--green);
@@ -379,8 +378,10 @@
     overlay.innerHTML = html;
     document.body.appendChild(overlay);
 
+    // Force layout for animation
     requestAnimationFrame(() => overlay.classList.add('open'));
 
+    // Close handlers
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay || e.target.closest('.modal-close')) {
         closeModal();
@@ -408,7 +409,7 @@
   // ============================================
 
   function openLogin() {
-    openModal(`
+    const overlay = openModal(`
       <div class="modal">
         <div class="modal-close">×</div>
         <div class="modal-header">
@@ -425,7 +426,7 @@
           <div class="form-field">
             <label>Mot de passe</label>
             <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
-            <div class="hint">Compte démo : demo@aditcg.fr / demo1234</div>
+            <div class="hint">Au moins 8 caractères, avec lettres et chiffres.</div>
           </div>
         </div>
         <div class="modal-footer">
@@ -586,79 +587,6 @@
   }
 
   // ============================================
-  // PANIER (cart)
-  // ============================================
-
-  function fmtPrice(v) {
-    return window.TCGdex ? window.TCGdex.formatPrice(v) : (Math.round(v * 100) / 100) + ' €';
-  }
-
-  function updateCartBadge() {
-    const badge = document.querySelector('#nav-cart-btn .nav-icon-badge');
-    if (!badge) return;
-    const c = window.Storage.cartCount();
-    badge.textContent = c;
-    badge.classList.toggle('hidden', c === 0);
-  }
-
-  function openCart() {
-    const cart = window.Storage.getCart();
-    const total = window.Storage.cartTotal();
-    let body;
-    if (cart.length === 0) {
-      body = '<div class="cart-empty"><div class="emoji">🛒</div><h3 style="font-family:var(--font-display);color:var(--ink);margin-bottom:6px;">Votre panier est vide</h3><p>Ajoutez des cartes depuis le marché.</p></div>';
-    } else {
-      body = cart.map(it => `
-        <div class="cart-item" data-cart-id="${it.cardId}">
-          <img class="cart-item-img" src="${it.image || ''}" alt="" onerror="this.style.visibility='hidden'">
-          <div>
-            <div class="cart-item-name">${it.name}</div>
-            ${it.grade ? `<div class="cart-item-grade">${it.grade}</div>` : ''}
-          </div>
-          <div class="cart-item-price">${fmtPrice(it.price)}</div>
-          <div class="cart-item-remove" data-remove-cart="${it.cardId}">×</div>
-        </div>`).join('')
-        + `<div class="cart-total-row"><span class="l">Total · ${cart.length} carte${cart.length > 1 ? 's' : ''}</span><span class="v">${fmtPrice(total)}</span></div>`;
-    }
-    openModal(`
-      <div class="modal" style="max-width: 480px;">
-        <div class="modal-close">×</div>
-        <div class="modal-header">
-          <h2>Mon <span class="accent">panier</span></h2>
-        </div>
-        <div class="modal-body">${body}</div>
-        ${cart.length ? `<div class="modal-footer">
-          <button class="btn btn-primary btn-large" id="cart-checkout">Passer commande · ${fmtPrice(total)}</button>
-          <button class="btn btn-ghost" id="cart-clear">Vider le panier</button>
-        </div>` : ''}
-      </div>
-    `);
-    document.querySelectorAll('[data-remove-cart]').forEach(el => {
-      el.addEventListener('click', () => {
-        window.Storage.removeFromCart(el.dataset.removeCart);
-        updateCartBadge();
-        openCart();
-      });
-    });
-    const checkout = document.getElementById('cart-checkout');
-    if (checkout) checkout.addEventListener('click', () => {
-      if (!window.Auth.isLoggedIn()) { closeModal(); openLogin(); return; }
-      const items = window.Storage.getCart();
-      items.forEach(it => window.Storage.addToCollection(it.cardId));
-      window.Storage.clearCart();
-      updateCartBadge();
-      closeModal();
-      toast('Commande confirmée ! ' + items.length + ' carte(s) ajoutée(s) à votre collection.', 'success', 4000);
-    });
-    const clear = document.getElementById('cart-clear');
-    if (clear) clear.addEventListener('click', () => {
-      window.Storage.clearCart();
-      updateCartBadge();
-      openCart();
-    });
-  }
-
-  // ============================================
   // NAVBAR SEARCH
   // ============================================
   function installNavbarSearch() {
@@ -700,23 +628,60 @@
       box.style.display = 'block';
       box.innerHTML = '<div style="padding:16px; text-align:center; font-size:13px; color:var(--gray-text);">Recherche…</div>';
       try {
-        const cards = await window.TCGdex.searchCards(query);
-        const top = cards.slice(0, 6);
-        if (top.length === 0) {
+        // Recherche cartes + utilisateurs en parallèle
+        const [cards, users] = await Promise.all([
+          window.TCGdex.searchCards(query).catch(() => []),
+          Promise.resolve(window.Auth.searchUsers ? window.Auth.searchUsers(query, 4) : []),
+        ]);
+        const topCards = (cards || []).slice(0, 6);
+
+        if (topCards.length === 0 && users.length === 0) {
           box.innerHTML = '<div style="padding:16px; text-align:center; font-size:13px; color:var(--gray-text);">Aucun résultat</div>';
           return;
         }
-        box.innerHTML = top.map(c => `
-          <a href="carte.html?id=${c.id}" style="display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom: 1px solid var(--gray-line); color:inherit; font-size:13px;">
-            <div style="width:32px; height:44px; background:var(--gray-bg); border-radius:4px; flex-shrink:0; overflow:hidden;">
-              <img src="${window.TCGdex.getCardImage(c, 'low', 'webp')}" alt="" style="width:100%; height:100%; object-fit:contain;">
-            </div>
-            <div style="flex:1; min-width:0;">
-              <div style="font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.name}</div>
-              <div style="font-family:var(--font-mono); font-size:10px; color:var(--gray-text); text-transform:uppercase;">${c.id}</div>
-            </div>
-          </a>
-        `).join('');
+
+        let html = '';
+
+        // === SECTION UTILISATEURS ===
+        if (users.length > 0) {
+          html += '<div style="padding:10px 14px 6px; font-family:var(--font-mono); font-size:9px; text-transform:uppercase; letter-spacing:0.12em; color:var(--gray-text); font-weight:700; background:var(--gray-bg);">Dresseurs · ' + users.length + '</div>';
+          html += users.map(u => {
+            const av = u.avatarImage
+              ? `<img src="${u.avatarImage}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`
+              : `<div style="width:32px;height:32px;border-radius:50%;background:var(--yellow);border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;color:var(--ink);font-size:13px;">${(u.avatar || u.name?.[0] || '?').toUpperCase()}</div>`;
+            return `
+              <a href="profil.html?u=${encodeURIComponent(u.username)}" style="display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom: 1px solid var(--gray-line); color:inherit; font-size:13px; text-decoration:none;">
+                ${av}
+                <div style="flex:1; min-width:0;">
+                  <div style="font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${u.name || '@' + u.username}</div>
+                  <div style="font-family:var(--font-mono); font-size:10px; color:var(--gray-text);">@${u.username}</div>
+                </div>
+                <div style="font-family:var(--font-mono); font-size:9px; color:var(--gray-text-2); text-transform:uppercase; letter-spacing:.08em;">Profil →</div>
+              </a>`;
+          }).join('');
+        }
+
+        // === SECTION CARTES ===
+        if (topCards.length > 0) {
+          html += '<div style="padding:10px 14px 6px; font-family:var(--font-mono); font-size:9px; text-transform:uppercase; letter-spacing:0.12em; color:var(--gray-text); font-weight:700; background:var(--gray-bg);">Cartes · ' + cards.length + ' trouvée' + (cards.length > 1 ? 's' : '') + '</div>';
+          html += topCards.map(c => `
+            <a href="carte.html?id=${c.id}" style="display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom: 1px solid var(--gray-line); color:inherit; font-size:13px; text-decoration:none;">
+              <div style="width:32px; height:44px; background:var(--gray-bg); border-radius:4px; flex-shrink:0; overflow:hidden;">
+                <img src="${window.TCGdex.getCardImage(c, 'low', 'webp')}" alt="" style="width:100%; height:100%; object-fit:contain;" onerror="this.style.display='none';">
+              </div>
+              <div style="flex:1; min-width:0;">
+                <div style="font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.name}</div>
+                <div style="font-family:var(--font-mono); font-size:10px; color:var(--gray-text); text-transform:uppercase;">${c.id}</div>
+              </div>
+            </a>
+          `).join('');
+          // Lien "voir plus" si beaucoup de résultats
+          if (cards.length > topCards.length) {
+            html += `<a href="marche.html?q=${encodeURIComponent(query)}" style="display:block; text-align:center; padding:10px; font-family:var(--font-mono); font-size:11px; font-weight:700; color:var(--blue); text-decoration:none; background:var(--gray-bg);">Voir les ${cards.length} cartes →</a>`;
+          }
+        }
+
+        box.innerHTML = html;
       } catch (e) {
         box.innerHTML = '<div style="padding:16px; text-align:center; font-size:13px; color:var(--red);">Erreur de recherche</div>';
       }
@@ -736,38 +701,21 @@
   }
 
   // ============================================
-  // INSTALL NAVBAR (icônes panier/favoris + user dropdown OU login/signup)
+  // INSTALL NAVBAR (user dropdown OR login/signup buttons)
   // ============================================
 
   function installNavbar() {
     const navCta = document.querySelector('.nav-cta');
     if (!navCta) return;
 
-    // Clear existing login/signup buttons + icons (keep theme toggle)
-    const existing = navCta.querySelectorAll('.btn-ghost.btn-small, .btn-primary.btn-small, .nav-user, .nav-icon-btn');
+    // Clear existing login/signup buttons (keep theme toggle)
+    const existing = navCta.querySelectorAll('.btn-ghost.btn-small, .btn-primary.btn-small, .nav-user');
     existing.forEach(el => el.remove());
-
-    // Icônes marketplace : favoris + panier
-    const favBtn = document.createElement('button');
-    favBtn.className = 'nav-icon-btn';
-    favBtn.title = 'Favoris';
-    favBtn.innerHTML = '♥';
-    favBtn.addEventListener('click', () => { window.location.href = 'profil.html#favorites'; });
-
-    const cartBtn = document.createElement('button');
-    cartBtn.className = 'nav-icon-btn';
-    cartBtn.id = 'nav-cart-btn';
-    cartBtn.title = 'Panier';
-    const cc = window.Storage.cartCount();
-    cartBtn.innerHTML = '🛒<span class="nav-icon-badge' + (cc > 0 ? '' : ' hidden') + '">' + cc + '</span>';
-    cartBtn.addEventListener('click', openCart);
-
-    navCta.appendChild(favBtn);
-    navCta.appendChild(cartBtn);
 
     const user = window.Auth.getCurrentUser();
 
     if (user) {
+      // Logged in : show user dropdown
       const wrap = document.createElement('div');
       wrap.className = 'nav-user';
       const isCard = (user.avatarImage || '').startsWith('http');
@@ -783,7 +731,6 @@
         <div class="user-dropdown">
           <a href="profil.html">👤 Ma collection</a>
           <a href="profil.html#favorites">♥ Favoris</a>
-          <a href="encheres.html">🔨 Enchères</a>
           <a href="trade.html">⇌ Mes échanges</a>
           <a href="marche.html">🛒 Marché</a>
           <div class="divider"></div>
@@ -814,6 +761,7 @@
         }
       });
     } else {
+      // Not logged in
       const ghost = document.createElement('button');
       ghost.className = 'btn btn-ghost btn-small';
       ghost.textContent = 'Connexion';
@@ -831,12 +779,16 @@
 
   // ============================================
   // GLOBAL CLICK INTERCEPTOR
+  // For "Connexion" / "S'inscrire" buttons embedded in pages
   // ============================================
 
   document.addEventListener('click', (e) => {
+    // Catch CTAs that aren't part of nav
     const btn = e.target.closest('button');
     if (!btn) return;
     const txt = btn.textContent.trim().toLowerCase();
+
+    // Buttons that should trigger signup
     if (btn.matches('.btn-primary.btn-large') && (txt.includes("s'inscrire") || txt.includes("rejoindre") || txt === "s'inscrire gratuitement")) {
       if (!window.Auth.isLoggedIn()) { e.preventDefault(); openSignup(); }
     }
@@ -851,16 +803,17 @@
     openLogin, openSignup,
     confirm, toast,
     installNavbar,
-    openCart, updateCartBadge,
   };
 
   // Auto-install when DOM ready
   function init() {
-    window.Auth.ensureDemoUser();
+    // Seed welcome data only if logged in (collection / activité de départ)
     if (window.Auth.isLoggedIn()) {
       window.Storage.seedDemoData();
     }
+    // Install navbar
     installNavbar();
+    // Install search
     installNavbarSearch();
   }
 

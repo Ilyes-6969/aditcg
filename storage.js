@@ -1,6 +1,6 @@
 // ============================================
 // STORAGE.JS — Données persistantes utilisateur
-// Collections, favoris, panier, enchères, échanges, activité
+// Collections, favoris, échanges, activité
 // ============================================
 
 const DATA_KEY_PREFIX = 'aditcg_userdata_';
@@ -29,12 +29,10 @@ function getDefaultData() {
   return {
     collection: [], // tableau d'IDs de cartes possédées
     favorites: [],  // IDs cartes
-    listings: [],   // [{ cardId, type, price, condition, createdAt }]
-    trades: [],     // [{ id, give, receive, partner, status, createdAt }]
+    listings: [],   // [{ cardId, type:'sale'|'trade', price, condition, createdAt }]
+    trades: [],     // [{ id, give:[ids], receive:[ids], partner, status, createdAt }]
     activity: [],   // [{ type, message, createdAt }]
-    portfolio: {},  // { 'YYYY-MM-DD': totalValue }
-    cart: [],       // [{ cardId, name, price, grade, image, addedAt }]
-    bids: [],       // [{ auctionId, cardId, amount, createdAt }]
+    portfolio: {}, // { 'YYYY-MM-DD': totalValue }
   };
 }
 
@@ -125,63 +123,6 @@ function removeListing(listingId) {
 }
 
 // ============================================
-// PANIER (cart)
-// ============================================
-
-function getCart() { return getUserData().cart || []; }
-
-function cartCount() { return getCart().length; }
-
-function isInCart(cardId) { return getCart().some(i => i.cardId === cardId); }
-
-function addToCart({ cardId, name, price, grade, image }) {
-  const data = getUserData();
-  if (!data.cart) data.cart = [];
-  if (data.cart.some(i => i.cardId === cardId)) return data.cart.length;
-  data.cart.push({ cardId, name: name || cardId, price: price || 0, grade: grade || null, image: image || '', addedAt: Date.now() });
-  addActivity('listing', `Ajout au panier : ${name || cardId}`);
-  saveUserData(data);
-  return data.cart.length;
-}
-
-function removeFromCart(cardId) {
-  const data = getUserData();
-  data.cart = (data.cart || []).filter(i => i.cardId !== cardId);
-  saveUserData(data);
-  return data.cart.length;
-}
-
-function clearCart() {
-  const data = getUserData();
-  data.cart = [];
-  saveUserData(data);
-}
-
-function cartTotal() {
-  return getCart().reduce((s, i) => s + (i.price || 0), 0);
-}
-
-// ============================================
-// ENCHÈRES (bids)
-// ============================================
-
-function getBids() { return getUserData().bids || []; }
-
-function placeBid({ auctionId, cardId, amount }) {
-  const data = getUserData();
-  if (!data.bids) data.bids = [];
-  data.bids = data.bids.filter(b => b.auctionId !== auctionId);
-  data.bids.push({ auctionId, cardId, amount, createdAt: Date.now() });
-  addActivity('trade', `Enchère placée : ${amount}€`);
-  saveUserData(data);
-  return data.bids;
-}
-
-function getBidForAuction(auctionId) {
-  return getBids().find(b => b.auctionId === auctionId) || null;
-}
-
-// ============================================
 // TRADES
 // ============================================
 
@@ -192,7 +133,7 @@ function createTrade({ give, receive, partner, message }) {
   const trade = {
     id: 't_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
     give, receive, partner: partner || 'Communauté', message: message || '',
-    status: 'pending',
+    status: 'pending', // pending | accepted | rejected | completed
     createdAt: Date.now(),
   };
   data.trades.push(trade);
@@ -223,6 +164,7 @@ function addActivity(type, message) {
     type, message,
     createdAt: Date.now(),
   });
+  // Garde uniquement les 100 dernières
   if (data.activity.length > 100) data.activity = data.activity.slice(0, 100);
   saveUserData(data);
 }
@@ -235,6 +177,7 @@ function recordPortfolioValue(value) {
   const data = getUserData();
   const today = new Date().toISOString().slice(0, 10);
   data.portfolio[today] = value;
+  // Garde uniquement les 12 derniers mois
   const cutoff = Date.now() - 365 * 24 * 60 * 60 * 1000;
   const cutoffStr = new Date(cutoff).toISOString().slice(0, 10);
   Object.keys(data.portfolio).forEach(d => {
@@ -251,12 +194,12 @@ function getPortfolioHistory() {
 }
 
 // ============================================
-// SEED DEMO DATA
+// SEED DEMO DATA (pour avoir une démo riche dès la 1re visite)
 // ============================================
 
 function seedDemoData() {
   const data = getUserData();
-  if (data.collection.length > 0) return;
+  if (data.collection.length > 0) return; // déjà seedée
 
   const demoCards = [
     'base1-4', 'base1-15', 'base1-25', 'base1-11',
@@ -267,11 +210,13 @@ function seedDemoData() {
   data.collection = demoCards;
   data.favorites = ['base1-4', 'neo1-9', 'swsh7-150'];
 
+  // Activité initiale
   data.activity = [
     { type: 'collection', message: 'Bienvenue sur ADITCG !', createdAt: Date.now() },
-    { type: 'system', message: 'Compte démo créé avec 12 cartes', createdAt: Date.now() - 3600000 },
+    { type: 'system', message: 'Collection de démarrage importée', createdAt: Date.now() - 3600000 },
   ];
 
+  // Portfolio mock — courbe ascendante sur 12 mois
   const today = new Date();
   for (let i = 11; i >= 0; i--) {
     const d = new Date(today);
@@ -288,8 +233,6 @@ window.Storage = {
   getCollection, isOwned, toggleOwned, addToCollection, removeFromCollection,
   getFavorites, isFavorite, toggleFavorite,
   getListings, addListing, removeListing,
-  getCart, cartCount, isInCart, addToCart, removeFromCart, clearCart, cartTotal,
-  getBids, placeBid, getBidForAuction,
   getTrades, createTrade, updateTradeStatus,
   getActivity, addActivity,
   recordPortfolioValue, getPortfolioHistory,

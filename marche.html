@@ -2,10 +2,11 @@
 <html lang="fr">
 <head>
 <script>
+// Anti-FOUC: apply theme before paint
 (function() {
   try {
     var saved = localStorage.getItem('aditcg_theme');
-    var theme = saved || 'dark';
+    var theme = saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     document.documentElement.setAttribute('data-theme', theme);
   } catch(e) {}
 })();
@@ -15,7 +16,7 @@
 <title>Marché — ADITCG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,700;0,9..144,800;0,9..144,900;1,9..144,300&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <style>
   .page-head {
@@ -84,6 +85,7 @@
   .filter-option input[type="checkbox"] { accent-color: var(--red); width: 16px; height: 16px; }
   .filter-option .count { margin-left: auto; font-family: var(--font-mono); font-size: 11px; color: var(--gray-text); }
 
+  .market-content {}
   .market-toolbar {
     display: flex;
     justify-content: space-between;
@@ -108,32 +110,105 @@
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-    color: var(--ink);
   }
 
-  /* bouton panier sur les annonces */
-  .auction-cart {
-    position: absolute;
-    top: 82px; right: 10px;
-    width: 30px; height: 30px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.92);
-    backdrop-filter: blur(4px);
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    z-index: 3;
-    font-size: 14px;
-    border: none;
-    transition: all 0.2s;
+  .pokemon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
   }
-  .auction-cart:hover { transform: scale(1.08); }
-  .auction-cart.in-cart { background: var(--green); }
-  [data-theme="dark"] .auction-cart { background: rgba(20,20,30,0.92); }
-  [data-theme="dark"] .auction-cart.in-cart { background: var(--green); }
+  .pkmn-card {
+    background: var(--white);
+    border: 1.5px solid var(--gray-line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: all 0.25s;
+    display: block;
+    position: relative;
+  }
+  .pkmn-card:hover {
+    border-color: var(--red);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+  }
+  .pkmn-card-img {
+    aspect-ratio: 245/342;
+    background: var(--gray-bg);
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .pkmn-card-img img { width: 100%; height: 100%; object-fit: contain; }
+  .pkmn-card-img .skel {
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, var(--gray-bg) 0%, var(--gray-line) 50%, var(--gray-bg) 100%);
+    background-size: 200% 100%;
+    animation: skel 1.4s infinite;
+    border-radius: var(--radius);
+  }
+  @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  .pkmn-card-badge {
+    position: absolute;
+    top: 8px; left: 8px;
+    padding: 3px 8px;
+    border-radius: var(--radius-pill);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    z-index: 2;
+    color: var(--white);
+  }
+  .pkmn-card-badge.sale { background: var(--red); }
+  .pkmn-card-badge.trade { background: var(--blue); }
+  .pkmn-card-badge.psa { background: var(--green); }
+
+  .pkmn-card-info { padding: 12px 14px 14px; }
+  .pkmn-card-name {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pkmn-card-set {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--gray-text);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+  }
+  .pkmn-card-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 8px;
+    border-top: 1px solid var(--gray-line);
+  }
+  .pkmn-card-price {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--ink);
+  }
+  .pkmn-card-trend {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--green);
+    font-weight: 600;
+  }
+  .pkmn-card-trend.down { color: var(--red); }
 
   @media (max-width: 900px) {
     .market-layout { grid-template-columns: 1fr; }
     .sidebar { position: static; }
+    .pokemon-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
   }
 </style>
 </head>
@@ -149,7 +224,6 @@
       <li><a href="index.html">Accueil</a></li>
       <li><a href="series.html">Séries</a></li>
       <li><a href="marche.html" class="active">Marché</a></li>
-      <li><a href="encheres.html">Enchères</a></li>
       <li><a href="trade.html">Échanges</a></li>
       <li><a href="profil.html">Collection</a></li>
     </ul>
@@ -173,7 +247,7 @@
     </div>
     <h1 class="display-1">Le <span class="italic-accent">marché</span> Pokémon</h1>
     <p style="color: var(--gray-text); max-width: 640px; margin-top: 16px; font-size: 17px;">
-      Toutes les cartes Pokémon disponibles à l'achat ou à l'échange. Filtrez par série, rareté, grade et prix.
+      Toutes les cartes Pokémon disponibles à l'achat ou à l'échange. Filtrez par série, rareté, prix et plus encore.
     </p>
   </div>
 </section>
@@ -182,6 +256,7 @@
   <div class="container">
     <div class="market-layout">
 
+      <!-- SIDEBAR FILTRES -->
       <aside class="sidebar">
         <h4>Séries</h4>
         <div class="filter-group" id="filter-series">
@@ -190,35 +265,36 @@
 
         <h4>Rareté</h4>
         <div class="filter-group">
-          <label class="filter-option"><input type="checkbox"> Common</label>
-          <label class="filter-option"><input type="checkbox"> Uncommon</label>
-          <label class="filter-option"><input type="checkbox"> Rare</label>
-          <label class="filter-option"><input type="checkbox"> Rare Holo</label>
-          <label class="filter-option"><input type="checkbox"> Ultra Rare</label>
-          <label class="filter-option"><input type="checkbox"> Secret Rare</label>
+          <label class="filter-option"><input type="checkbox"> Common <span class="count">2,341</span></label>
+          <label class="filter-option"><input type="checkbox"> Uncommon <span class="count">1,892</span></label>
+          <label class="filter-option"><input type="checkbox"> Rare <span class="count">1,247</span></label>
+          <label class="filter-option"><input type="checkbox"> Rare Holo <span class="count">684</span></label>
+          <label class="filter-option"><input type="checkbox"> Ultra Rare <span class="count">412</span></label>
+          <label class="filter-option"><input type="checkbox"> Secret Rare <span class="count">156</span></label>
         </div>
 
-        <h4>État / Grade PSA</h4>
-        <div class="filter-group" id="filter-grades">
-          <label class="filter-option"><input type="checkbox" data-filter="grade" value="PSA10"> PSA 10 <span class="count">Gem Mint</span></label>
-          <label class="filter-option"><input type="checkbox" data-filter="grade" value="PSA9"> PSA 9 <span class="count">Mint</span></label>
-          <label class="filter-option"><input type="checkbox" data-filter="grade" value="PSA8"> PSA 8 <span class="count">NM</span></label>
-          <label class="filter-option"><input type="checkbox" data-filter="grade" value="PCA10"> PCA 10</label>
-          <label class="filter-option"><input type="checkbox" data-filter="grade" value="raw"> Brut (non gradée)</label>
+        <h4>État</h4>
+        <div class="filter-group">
+          <label class="filter-option"><input type="checkbox"> Mint (M)</label>
+          <label class="filter-option"><input type="checkbox" checked> Near Mint (NM)</label>
+          <label class="filter-option"><input type="checkbox"> Excellent (EX)</label>
+          <label class="filter-option"><input type="checkbox"> PSA 10</label>
+          <label class="filter-option"><input type="checkbox"> PSA 9</label>
         </div>
 
         <h4>Prix (€)</h4>
         <div class="filter-group">
-          <label class="filter-option"><input type="checkbox"> &lt; 10</label>
+          <label class="filter-option"><input type="checkbox"> < 10</label>
           <label class="filter-option"><input type="checkbox"> 10 - 50</label>
           <label class="filter-option"><input type="checkbox"> 50 - 200</label>
           <label class="filter-option"><input type="checkbox"> 200 - 1000</label>
-          <label class="filter-option"><input type="checkbox"> &gt; 1000</label>
+          <label class="filter-option"><input type="checkbox"> > 1000</label>
         </div>
 
         <button class="btn btn-primary" style="width: 100%; margin-top: 12px;">Appliquer</button>
       </aside>
 
+      <!-- MARKET CONTENT -->
       <div class="market-content">
         <div class="market-toolbar">
           <div class="results-count"><strong id="result-count">—</strong> cartes</div>
@@ -246,7 +322,7 @@
   <div class="container">
     <div class="footer-grid">
       <div class="footer-brand"><h4>ADI<span>TCG</span>.</h4><p>La référence française du trade Pokémon.</p></div>
-      <div class="footer-col"><h5>Explorer</h5><ul><li><a href="series.html">Séries</a></li><li><a href="marche.html">Marché</a></li><li><a href="encheres.html">Enchères</a></li></ul></div>
+      <div class="footer-col"><h5>Explorer</h5><ul><li><a href="series.html">Séries</a></li><li><a href="marche.html">Marché</a></li></ul></div>
       <div class="footer-col"><h5>Compte</h5><ul><li><a href="profil.html">Collection</a></li></ul></div>
       <div class="footer-col"><h5>Support</h5><ul><li><a href="#">FAQ</a></li></ul></div>
     </div>
@@ -262,19 +338,20 @@
 <script src="app.js"></script>
 <script>
 (async () => {
+  // STATE
   let allCards = [];
   const filters = {
-    series: new Set(),
-    rarities: new Set(),
-    grades: new Set(),
-    prices: new Set(),
+    series: new Set(),    // set IDs
+    rarities: new Set(),  // 'common', 'uncommon', etc.
+    conditions: new Set(['NM']),
+    prices: new Set(),    // 'lt10', '10-50', etc.
   };
   let sort = 'recent';
 
-  function escapeHtml(s) {
-    return (s || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
-  }
-
+  // ============================================
+  // LOAD DATA — résilient : chargement parallèle,
+  // affiche les cartes disponibles même si un set échoue
+  // ============================================
   function marketErrorState() {
     return '<div class="empty-state" style="grid-column: 1/-1;"><div class="emoji">⚠️</div>' +
       '<h3>Impossible de charger</h3>' +
@@ -287,17 +364,23 @@
     grid.innerHTML = '<div class="loading-state" style="grid-column: 1/-1;"><div class="pokeball-loader"></div>Chargement des cartes en vente…</div>';
     allCards = [];
     try {
-      // Sets de la ligne principale (hors promos / hors TCG Pocket), ordre chrono
+      // 1) Récupère TOUS les sets principaux (hors promos McDo, POP, etc.)
+      //    déjà triés par série dans l'ordre chronologique canonique
+      //    Base Set 1999 → Écarlate & Violet 2024+
       const mainlineSets = await window.TCGdex.getMainlineSets();
       if (!mainlineSets || mainlineSets.length === 0) throw new Error('Aucun set récupéré');
 
-      const sortedSets = [...mainlineSets].sort((a, b) =>
+      // 2) Sidebar : liste les séries dans l'ordre chronologique (PAS McDo en premier)
+      //    On affiche les sets dans leur ordre de sortie, du plus ancien au plus récent.
+      const filterEl = document.getElementById('filter-series');
+      // Trie : par date croissante (les plus anciennes d'abord)
+      const sortedForSidebar = [...mainlineSets].sort((a, b) =>
         (a.releaseDate || '9999').localeCompare(b.releaseDate || '9999')
       );
-
-      // Sidebar : 20 séries les plus récentes
-      const filterEl = document.getElementById('filter-series');
-      const sidebarSets = sortedSets.slice(-20).reverse();
+      // On en montre 20 max pour ne pas saturer la sidebar (les plus récentes pour le marché)
+      // mais on garde l'ordre chronologique : on prend les 20 dernières et on les inverse
+      // pour avoir "plus récent en haut" — ce qui matche l'attente utilisateur.
+      const sidebarSets = sortedForSidebar.slice(-20).reverse();
       filterEl.innerHTML = sidebarSets.map(s => {
         const year = (s.releaseDate || '').slice(0, 4) || '—';
         return `
@@ -309,15 +392,16 @@
         `;
       }).join('');
 
-      // Cartes : 6 sets les plus récents
-      const topSets = sortedSets.slice(-6).reverse();
+      // 3) Cartes en vente : on charge depuis les 6 sets MAINLINE les plus récents
+      //    (pas McDo) — c'est ce que l'utilisateur veut voir en premier
+      const topSets = sortedForSidebar.slice(-6).reverse();
       const details = await Promise.all(
         topSets.map(set => window.TCGdex.getSetDetail(set.id).catch(() => null))
       );
       details.forEach((detail, i) => {
         const set = topSets[i];
         if (detail?.cards?.length) {
-          allCards.push(...detail.cards.slice(0, 12).map(c => ({
+          allCards.push(...detail.cards.slice(0, 20).map(c => ({
             ...c, _setId: set.id, _setName: set.name, _release: set.releaseDate || '',
           })));
         }
@@ -329,20 +413,6 @@
         return;
       }
       render();
-
-      // Mise à niveau : vrais prix Cardmarket (charge le détail de chaque carte)
-      const detailed = await Promise.all(
-        allCards.map(c => window.TCGdex.getCardDetail(c.id).catch(() => null))
-      );
-      let upgraded = false;
-      detailed.forEach((d, i) => {
-        if (d && d.pricing) {
-          allCards[i].pricing = d.pricing;
-          allCards[i].rarity = d.rarity || allCards[i].rarity;
-          upgraded = true;
-        }
-      });
-      if (upgraded) render();
     } catch (e) {
       console.error(e);
       grid.innerHTML = marketErrorState();
@@ -351,10 +421,15 @@
   }
   loadMarket();
 
+  // ============================================
+  // RENDER
+  // ============================================
   function applyFilters(cards) {
     return cards.filter(c => {
+      // Series filter
       if (filters.series.size > 0 && !filters.series.has(c._setId)) return false;
 
+      // Rarity filter
       if (filters.rarities.size > 0) {
         const r = (c.rarity || '').toLowerCase();
         let match = false;
@@ -364,17 +439,9 @@
         if (!match) return false;
       }
 
-      if (filters.grades.size > 0) {
-        const listing = window.Auctions.getListing(c);
-        const code = listing ? listing.grade.code : 'NM';
-        const isRaw = code === 'NM' || code === 'EX';
-        const key = isRaw ? 'raw' : code;
-        if (!filters.grades.has(key)) return false;
-      }
-
+      // Price filter
       if (filters.prices.size > 0) {
-        const listing = window.Auctions.getListing(c);
-        const p = listing ? (listing.type === 'auction' ? listing.currentBid : listing.price) : window.TCGdex.estimatePrice(c);
+        const p = window.TCGdex.estimatePrice(c);
         let match = false;
         for (const range of filters.prices) {
           if (range === 'lt10' && p < 10) match = true;
@@ -390,15 +457,10 @@
     });
   }
 
-  function listingPrice(c) {
-    const l = window.Auctions.getListing(c);
-    return l ? (l.type === 'auction' ? l.currentBid : l.price) : window.TCGdex.estimatePrice(c);
-  }
-
   function applySort(cards) {
     const list = [...cards];
-    if (sort === 'price-desc') return list.sort((a, b) => listingPrice(b) - listingPrice(a));
-    if (sort === 'price-asc') return list.sort((a, b) => listingPrice(a) - listingPrice(b));
+    if (sort === 'price-desc') return list.sort((a, b) => window.TCGdex.estimatePrice(b) - window.TCGdex.estimatePrice(a));
+    if (sort === 'price-asc') return list.sort((a, b) => window.TCGdex.estimatePrice(a) - window.TCGdex.estimatePrice(b));
     if (sort === 'recent') return list.sort((a, b) => (b._release || '').localeCompare(a._release || ''));
     if (sort === 'popular') return list.sort((a, b) => {
       const ar = (a.rarity || '').toLowerCase();
@@ -422,7 +484,11 @@
       return;
     }
 
-    grid.innerHTML = display.map(c => renderAuctionCardMarche(c)).join('');
+    grid.innerHTML = display.map((c, i) => renderAuctionCardMarche(c)).join('');
+  }
+
+  function escapeHtml(s) {
+    return (s || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
   }
 
   function renderAuctionCardMarche(card) {
@@ -442,7 +508,6 @@
         : '<span class="auction-badge fixed">Achat direct</span>';
     const gradeStyle = `color:${listing.grade.color};border-color:${listing.grade.color};`;
     const isFav = window.Storage.isFavorite(card.id);
-    const inCart = window.Storage.isInCart(card.id);
 
     return `
       <a href="carte.html?id=${card.id}" class="auction-card">
@@ -452,7 +517,6 @@
             <span class="auction-badge grade" style="${gradeStyle}">${listing.grade.label}</span>
           </div>
           <button class="auction-fav ${isFav ? 'active' : ''}" data-fav-id="${card.id}" aria-label="Favori" type="button" onclick="event.preventDefault();event.stopPropagation();window.__toggleFav&&window.__toggleFav('${card.id}',this);"></button>
-          <button class="auction-cart ${inCart ? 'in-cart' : ''}" aria-label="Panier" type="button" onclick="event.preventDefault();event.stopPropagation();window.__addCart&&window.__addCart('${card.id}',this);">🛒</button>
           <img src="${img}" alt="${escapeHtml(card.name)}" loading="lazy"
             onerror="this.outerHTML='<div class=&quot;ph&quot;>${escapeHtml(card.name).slice(0, 20)}</div>'">
         </div>
@@ -482,35 +546,14 @@
       </a>`;
   }
 
-  // Toggle fav handler exposé pour onclick inline
+  // Toggle fav handler exposed for inline onclick
   window.__toggleFav = function(id, btn) {
     const now = window.Storage.toggleFavorite(id);
     btn.classList.toggle('active', now);
     window.UI.toast(now ? 'Ajouté aux favoris ♥' : 'Retiré des favoris', now ? 'success' : 'info');
   };
 
-  // Add-to-cart handler exposé pour onclick inline
-  window.__addCart = function(id, btn) {
-    const card = allCards.find(c => c.id === id);
-    if (!card) return;
-    if (window.Storage.isInCart(id)) {
-      window.UI.toast('Cette carte est déjà dans le panier', 'info');
-      return;
-    }
-    const listing = window.Auctions.getListing(card);
-    window.Storage.addToCart({
-      cardId: id,
-      name: card.name,
-      price: listing ? (listing.type === 'auction' ? listing.currentBid : listing.price) : window.TCGdex.estimatePrice(card),
-      image: window.TCGdex.getCardImage(card, 'low', 'webp'),
-      grade: listing ? listing.grade.label : null,
-    });
-    btn.classList.add('in-cart');
-    window.UI.updateCartBadge();
-    window.UI.toast(`${card.name} ajouté au panier`, 'success');
-  };
-
-  // Auto-refresh countdowns
+  // Auto-refresh countdowns every minute
   setInterval(() => {
     document.querySelectorAll('[data-countdown]').forEach(el => {
       const t = parseInt(el.dataset.countdown, 10);
@@ -522,20 +565,17 @@
   // ============================================
   // FILTER HANDLERS
   // ============================================
+  // Series filter
   document.addEventListener('change', (e) => {
     const inp = e.target;
     if (inp.matches('[data-filter="series"]')) {
       if (inp.checked) filters.series.add(inp.value);
       else filters.series.delete(inp.value);
       render();
-    } else if (inp.matches('[data-filter="grade"]')) {
-      if (inp.checked) filters.grades.add(inp.value);
-      else filters.grades.delete(inp.value);
-      render();
     }
   });
 
-  // Rarity filters (2e filter-group)
+  // Rarity filters
   document.querySelectorAll('aside.sidebar .filter-group')[1]?.addEventListener('change', (e) => {
     const cb = e.target;
     if (cb.type !== 'checkbox') return;
@@ -552,7 +592,7 @@
     render();
   });
 
-  // Price filters (4e filter-group)
+  // Price filters
   document.querySelectorAll('aside.sidebar .filter-group')[3]?.addEventListener('change', (e) => {
     const cb = e.target;
     if (cb.type !== 'checkbox') return;
@@ -568,11 +608,13 @@
     render();
   });
 
+  // Sort
   document.getElementById('sort-select')?.addEventListener('change', (e) => {
     sort = e.target.value;
     render();
   });
 
+  // "Apply" button (also re-renders)
   document.querySelector('.sidebar .btn-primary')?.addEventListener('click', () => {
     render();
     window.UI.toast('Filtres appliqués', 'info');
@@ -581,11 +623,49 @@
   function resetFilters() {
     filters.series.clear();
     filters.rarities.clear();
-    filters.grades.clear();
     filters.prices.clear();
-    document.querySelectorAll('.sidebar input[type="checkbox"]').forEach(cb => { cb.checked = false; });
+    document.querySelectorAll('.sidebar input[type="checkbox"]').forEach(cb => {
+      const txt = cb.nextSibling?.textContent?.trim().toLowerCase() || '';
+      cb.checked = txt.includes('near mint');
+    });
     render();
   }
+
+  // ============================================
+  // BUTTON HANDLERS (delegated)
+  // ============================================
+  document.getElementById('market-grid').addEventListener('click', async (e) => {
+    const favBtn = e.target.closest('.fav-toggle');
+    if (favBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const id = favBtn.dataset.favId;
+      const now = window.Storage.toggleFavorite(id);
+      favBtn.classList.toggle('active', now);
+      window.UI.toast(now ? 'Ajouté aux favoris ♥' : 'Retiré des favoris', now ? 'success' : 'info');
+      return;
+    }
+    const buyBtn = e.target.closest('.market-buy-btn');
+    if (buyBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!window.Auth.isLoggedIn()) { window.UI.openLogin(); return; }
+      const id = buyBtn.dataset.buyId;
+      const card = allCards.find(c => c.id === id);
+      if (!card) return;
+      const price = window.TCGdex.estimatePrice(card);
+      const ok = await window.UI.confirm({
+        title: 'Confirmer l\'achat',
+        message: `Acheter <strong>${card.name}</strong> pour <strong>${window.TCGdex.formatPrice(price)}</strong> ?`,
+        confirmText: 'Confirmer',
+      });
+      if (ok) {
+        window.Storage.addToCollection(card.id);
+        window.Storage.addActivity('listing', `Achat marché : ${card.name} pour ${window.TCGdex.formatPrice(price)}`);
+        window.UI.toast('Achat confirmé ! Carte ajoutée à votre collection.', 'success', 4000);
+      }
+    }
+  });
 })();
 </script>
 

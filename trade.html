@@ -2,10 +2,11 @@
 <html lang="fr">
 <head>
 <script>
+// Anti-FOUC: apply theme before paint
 (function() {
   try {
     var saved = localStorage.getItem('aditcg_theme');
-    var theme = saved || 'dark';
+    var theme = saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     document.documentElement.setAttribute('data-theme', theme);
   } catch(e) {}
 })();
@@ -15,7 +16,7 @@
 <title>Échanges — ADITCG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,700;0,9..144,800;0,9..144,900;1,9..144,300&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <style>
   .page-head {
@@ -46,6 +47,7 @@
   .breadcrumb a:hover { color: var(--blue); }
   .breadcrumb .sep { margin: 0 8px; opacity: 0.5; }
 
+  /* TRADE COMPOSER */
   .trade-composer {
     background: var(--white);
     border: 2px solid var(--ink);
@@ -85,9 +87,11 @@
     grid-template-columns: 1fr auto 1fr;
     gap: 0;
   }
-  .composer-side { padding: 32px; }
-  .composer-side.give { background: linear-gradient(180deg, rgba(220, 10, 45, 0.06), transparent); }
-  .composer-side.receive { background: linear-gradient(180deg, rgba(79, 99, 245, 0.06), transparent); }
+  .composer-side {
+    padding: 32px;
+  }
+  .composer-side.give { background: linear-gradient(180deg, rgba(220, 10, 45, 0.04), transparent); }
+  .composer-side.receive { background: linear-gradient(180deg, rgba(59, 76, 202, 0.04), transparent); }
 
   .composer-side h3 {
     font-family: var(--font-mono);
@@ -219,7 +223,10 @@
   }
   .balance-display .v.neg { color: var(--red); }
 
-  .trade-feed { margin-top: 40px; }
+  /* PUBLIC TRADES */
+  .trade-feed {
+    margin-top: 40px;
+  }
   .trade-card {
     background: var(--white);
     border: 1.5px solid var(--gray-line);
@@ -250,7 +257,10 @@
     color: var(--ink);
     font-size: 16px;
   }
-  .trader-name { font-weight: 700; color: var(--ink); }
+  .trader-name {
+    font-weight: 700;
+    color: var(--ink);
+  }
   .trader-meta {
     font-family: var(--font-mono);
     font-size: 10px;
@@ -265,7 +275,10 @@
     gap: 16px;
     align-items: center;
   }
-  .mini-cards { display: flex; gap: 8px; }
+  .mini-cards {
+    display: flex;
+    gap: 8px;
+  }
   .mini-card {
     width: 60px;
     aspect-ratio: 245/342;
@@ -307,6 +320,7 @@
     letter-spacing: 0.1em;
   }
 
+  /* HISTORY TABLE */
   .history-section { margin-top: 50px; }
   .history-table {
     background: var(--white);
@@ -369,7 +383,6 @@
       <li><a href="index.html">Accueil</a></li>
       <li><a href="series.html">Séries</a></li>
       <li><a href="marche.html">Marché</a></li>
-      <li><a href="encheres.html">Enchères</a></li>
       <li><a href="trade.html" class="active">Échanges</a></li>
       <li><a href="profil.html">Collection</a></li>
     </ul>
@@ -401,6 +414,7 @@
 <section style="padding: 0 0 60px;">
   <div class="container">
 
+    <!-- TRADE COMPOSER -->
     <div class="trade-composer">
       <div class="composer-head">
         <h2>Composer un <span class="accent">échange</span></h2>
@@ -438,7 +452,7 @@
           <div class="slot-grid" id="receive-slots">
             <div class="slot filled">
               <div class="slot-remove">×</div>
-              <img src="" alt="" data-card="sv03.5-006">
+              <img src="" alt="" data-card="sv03.5-9">
             </div>
             <div class="slot"><span class="plus">+</span></div>
             <div class="slot"><span class="plus">+</span></div>
@@ -463,6 +477,7 @@
       </div>
     </div>
 
+    <!-- PUBLIC TRADES FEED -->
     <div class="section-header-row" style="margin-bottom: 24px;">
       <div>
         <div class="eyebrow blue">⇌ Échanges publics</div>
@@ -483,6 +498,7 @@
       </div>
     </div>
 
+    <!-- HISTORY -->
     <div class="history-section">
       <h2 class="display-2" style="margin-bottom: 24px;">Mes <span class="italic-accent">échanges</span></h2>
       <div class="history-table">
@@ -531,7 +547,7 @@
   <div class="container">
     <div class="footer-grid">
       <div class="footer-brand"><h4>ADI<span>TCG</span>.</h4><p>La référence française du trade Pokémon.</p></div>
-      <div class="footer-col"><h5>Explorer</h5><ul><li><a href="series.html">Séries</a></li><li><a href="marche.html">Marché</a></li><li><a href="encheres.html">Enchères</a></li></ul></div>
+      <div class="footer-col"><h5>Explorer</h5><ul><li><a href="series.html">Séries</a></li><li><a href="marche.html">Marché</a></li></ul></div>
       <div class="footer-col"><h5>Compte</h5><ul><li><a href="profil.html">Collection</a></li></ul></div>
       <div class="footer-col"><h5>Support</h5><ul><li><a href="#">FAQ</a></li></ul></div>
     </div>

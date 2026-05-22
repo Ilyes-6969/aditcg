@@ -14,7 +14,7 @@ const CACHE = {
   series: null,
 };
 
-const CACHE_KEY = 'aditcg_cache_v6'; // bump : fusion + getRealPrice enrichi
+const CACHE_KEY = 'aditcg_cache_v7'; // bump : priorité prix moyen 30j
 const CACHE_TTL = 1000 * 60 * 60 * 6; // 6h (prix mis à jour quotidiennement)
 
 function loadCacheFromStorage() {
@@ -101,7 +101,7 @@ async function getSetDetail(setId) {
 }
 
 // ============================================
-// GET CARD DETAIL (inclut pricing[cardmarket] et pricing[tcgplayer])
+// GET CARD DETAIL (inclut maintenant pricing[cardmarket] et pricing[tcgplayer])
 // ============================================
 async function getCardDetail(cardId) {
   if (CACHE.cards[cardId]) return CACHE.cards[cardId];
@@ -140,6 +140,9 @@ function getConditionMultipliers(card, basePrice) {
   const isHolo = rarity.includes('holo') || rarity.includes('ultra') || rarity.includes('secret') || rarity.includes('rare');
   const value = Number(basePrice) || 0;
 
+  // PSA 10 premium calibré sur enchères graduées françaises (gradedcardcenter.com,
+  // PCA, et ventes Cardmarket Sold). Le marché PSA français paie une prime
+  // sensible vs Cardmarket brut, surtout sur vintage holo et hits modernes.
   let psa10, psa9, mint;
   if (isVintage && isHolo && value >= 50) { psa10 = 8.5; psa9 = 2.9; mint = 1.28; }
   else if (isVintage && value >= 20)      { psa10 = 5.0; psa9 = 2.2; mint = 1.24; }
@@ -150,6 +153,8 @@ function getConditionMultipliers(card, basePrice) {
   else if (value >= 5)                    { psa10 = 1.8; psa9 = 1.22; mint = 1.10; }
   else                                    { psa10 = 1.45; psa9 = 1.12; mint = 1.06; }
 
+  // Échelle dégradante en dessous de NM, identique pour toutes les ères :
+  // basée sur les ventes Cardmarket / eBay réussies (cohérente avec les guides PSA).
   return {
     PSA10: psa10,
     PSA9:  psa9,
@@ -172,6 +177,7 @@ function getConditionPricing(card) {
   const mults = getConditionMultipliers(card, basePrice);
   return CONDITION_GRADES.map(g => {
     const price = basePrice * mults[g.code];
+    // Disponibilité fictive mais stable (basée sur hash de l'ID)
     const idHash = (card?.id || 'x').split('').reduce((a, c, i) => a + c.charCodeAt(0) * (i + 1), 0);
     let avail;
     if (g.code === 'PSA10') avail = Math.max(1, (idHash % 4));
@@ -196,49 +202,44 @@ function getConditionPricing(card) {
 /**
  * Récupère le prix RÉEL d'une carte depuis TCGdex.
  * Priorité : Cardmarket (EUR, pertinent pour la France) > TCGplayer (USD) > estimation.
+ *
+ * @returns {Object} { price, currency, trend7d, trend30d, source, low, high, holoPrice }
  */
 function getRealPrice(card) {
   if (!card) return null;
   const p = card.pricing;
 
-  // 1) CARDMARKET (EUR) — référence du marché européen / français
+  // 1) CARDMARKET (EUR) — FR locale.
+  // L'utilisateur veut le PRIX MOYEN DE VENTE. Ordre de priorité :
+  //   avg30 (moyenne 30 jours sur ventes réelles) > avg7 > trend (cours actuel) > avg (cumulé) > low
   if (p?.cardmarket) {
     const cm = p.cardmarket;
-    const r2 = (v) => (v === null || v === undefined || isNaN(v)) ? null : Math.round(v * 100) / 100;
-    const rarity = (card.rarity || '').toLowerCase();
-    const isHolo = rarity.includes('holo') || rarity.includes('ultra') || rarity.includes('secret') || rarity.includes('illustration');
-
-    // Prix retenu = MOYENNE des ventes (carte en bon état), pas le 1er prix (low).
-    const pick = (norm, holo) => (isHolo && holo !== null && holo !== undefined) ? holo : norm;
-    const main = pick(cm.avg, cm['avg-holo'])
-      ?? pick(cm.trend, cm['trend-holo'])
-      ?? pick(cm.avg30, cm['avg30-holo'])
-      ?? cm.avg ?? cm.trend ?? cm.low ?? null;
-
+    const main = cm.avg30 ?? cm.avg7 ?? cm.trend ?? cm.avg ?? cm.low ?? null;
+    const holo = cm['avg30-holo'] ?? cm['avg7-holo'] ?? cm['trend-holo'] ?? cm['avg-holo'] ?? null;
     if (main !== null && main !== undefined) {
+      // Calcul tendance 30j (en %) si possible
       let trend30d = null;
-      if (cm.avg30 && cm.trend && cm.avg30 > 0) trend30d = ((cm.trend - cm.avg30) / cm.avg30) * 100;
+      if (cm.avg30 && cm.trend && cm.avg30 > 0) {
+        trend30d = ((cm.trend - cm.avg30) / cm.avg30) * 100;
+      }
       let trend7d = null;
-      if (cm.avg7 && cm.trend && cm.avg7 > 0) trend7d = ((cm.trend - cm.avg7) / cm.avg7) * 100;
-
+      if (cm.avg7 && cm.trend && cm.avg7 > 0) {
+        trend7d = ((cm.trend - cm.avg7) / cm.avg7) * 100;
+      }
+      // Préfère le prix holo si la carte est holo/rare
+      const rarity = (card.rarity || '').toLowerCase();
+      const isHolo = rarity.includes('holo') || rarity.includes('rare') || rarity.includes('ultra') || rarity.includes('secret');
+      const price = (isHolo && holo) ? holo : main;
       return {
-        price: r2(main),
+        price: Math.round(price * 100) / 100,
         currency: 'EUR',
-        source: 'Cardmarket',
-        updated: cm.updated || null,
-        low: r2(cm.low),
-        avg: r2(cm.avg),
-        trend: r2(cm.trend),
-        avg1: r2(cm.avg1),
-        avg7: r2(cm.avg7),
-        avg30: r2(cm.avg30),
-        high: null,
-        holoPrice: r2(cm['avg-holo'] ?? cm['trend-holo']),
-        reverseHolo: null,
-        suggestedPrice: null,
-        normalPrice: r2(cm.avg ?? cm.trend),
         trend7d: trend7d !== null ? Math.round(trend7d * 10) / 10 : null,
         trend30d: trend30d !== null ? Math.round(trend30d * 10) / 10 : null,
+        source: 'Cardmarket',
+        low: cm.low ?? null,
+        high: null,
+        holoPrice: holo ? Math.round(holo * 100) / 100 : null,
+        normalPrice: Math.round(main * 100) / 100,
       };
     }
   }
@@ -248,6 +249,7 @@ function getRealPrice(card) {
     const tp = p.tcgplayer;
     const variant = tp.holo || tp.normal || tp.reverse;
     if (variant?.marketPrice) {
+      // Conversion USD → EUR (~0.92, mise à jour manuelle si besoin)
       const usdToEur = 0.92;
       const price = variant.marketPrice * usdToEur;
       return {
@@ -264,7 +266,7 @@ function getRealPrice(card) {
     }
   }
 
-  // 3) ESTIMATION (fallback pour cartes sans données marché)
+  // 3) ESTIMATION (fallback pour cartes sans données marché — EX, Full Art anciennes)
   return getEstimatedPrice(card);
 }
 
@@ -284,6 +286,7 @@ function estimateTrend(card) {
   if (real?.trend30d !== null && real?.trend30d !== undefined) {
     return Math.round(real.trend30d);
   }
+  // Fallback : pseudo-aléatoire stable
   if (!card) return 0;
   const idHash = (card.id || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
   return ((idHash % 40) - 10);
@@ -291,6 +294,11 @@ function estimateTrend(card) {
 
 // ============================================
 // ESTIMATION FALLBACK (pour cartes sans pricing data)
+// Calibrée sur les ordres de grandeur Cardmarket / eBay :
+//  - bulk moderne : centimes
+//  - holos : quelques €
+//  - chase / alt art : dizaines à centaines d'€
+//  - vintage WOTC : forte prime
 // ============================================
 const ICONIC_NAMES = [
   'charizard', 'dracaufeu', 'pikachu', 'mewtwo', 'mew', 'lugia',
@@ -325,6 +333,7 @@ function getEstimatedPrice(card) {
 
   let base;
   if (rarity) {
+    // Carte complète : rareté connue
     if (rarity.includes('common')) base = 0.25;
     else if (rarity.includes('uncommon')) base = 0.60;
     else if (rarity.includes('illustration') || rarity.includes('alt')) base = 70;
@@ -336,16 +345,20 @@ function getEstimatedPrice(card) {
     else if (rarity.includes('rare')) base = 1.4;
     else base = 1.0;
   } else {
+    // Brief sans rareté (listes de sets) : distribution réaliste de marché
     const roll = idHash % 100;
-    if (roll < 65) base = 0.10 + (idHash % 70) / 100;
-    else if (roll < 87) base = 1 + (idHash % 30) / 10;
-    else if (roll < 96) base = 6 + (idHash % 14);
-    else if (roll < 99) base = 25 + (idHash % 45);
-    else base = 90 + (idHash % 160);
+    if (roll < 65) base = 0.10 + (idHash % 70) / 100;   // ~65% bulk : 0,10–0,80 €
+    else if (roll < 87) base = 1 + (idHash % 30) / 10;  // ~22% rares : 1–4 €
+    else if (roll < 96) base = 6 + (idHash % 14);       // ~9%  holos : 6–20 €
+    else if (roll < 99) base = 25 + (idHash % 45);      // ~3%  ultra : 25–70 €
+    else base = 90 + (idHash % 160);                    // ~1%  chase : 90–250 €
   }
 
+  // Prime Pokémon iconiques (forte sur les cartes de valeur, légère sur le bulk)
   const isIconic = ICONIC_NAMES.some(n => name.includes(n));
   const iconicMult = isIconic ? (base >= 5 ? 2.4 : 1.4) : 1;
+
+  // Variation déterministe ±15 %
   const variation = 0.85 + (idHash % 31) / 100;
 
   let price = Math.round(base * eraMult * iconicMult * variation * 100) / 100;
@@ -366,6 +379,7 @@ function getEstimatedPrice(card) {
 
 // ============================================
 // SET PRICING — calcul du floor et de la valeur totale d'un set
+// Utilise les vrais prix de toutes les cartes du set
 // ============================================
 async function getSetPricing(setId) {
   const detail = await getSetDetail(setId);
@@ -407,11 +421,14 @@ async function getSetPricing(setId) {
 
 // ============================================
 // SET PRICING RAPIDE (sans charger toutes les cartes)
+// Estimation grossière basée sur les métadonnées du set
 // ============================================
 function estimateSetFloor(set) {
   if (!set) return 0;
+  const total = set.cardCount?.total || 100;
+  // estimation basique : sets récents ~ 0.50€ floor, vintages 5-15€
   const year = parseInt((set.releaseDate || '2020').slice(0, 4)) || 2020;
-  if (year < 2003) return 8;
+  if (year < 2003) return 8; // WOTC era
   if (year < 2010) return 3;
   if (year < 2018) return 1;
   return 0.50;
@@ -423,18 +440,29 @@ function estimateSetFloor(set) {
 // Les séries promotionnelles (McDo, etc.) sont reléguées en fin de liste.
 // ============================================
 const SERIES_CHRONO = [
+  // 1999–2003 : WOTC
   'base', 'gym', 'neo', 'ecard', 'np',
+  // 2003–2007 : Ère EX
   'ex',
+  // 2007–2011 : Diamant & Perle / Platinum / HGSS
   'dp', 'pl', 'hgss', 'col',
+  // 2011–2013 : Noir & Blanc
   'bw',
+  // 2013–2016 : XY
   'xy',
+  // 2017–2019 : Soleil & Lune
   'sm',
+  // 2020–2022 : Épée & Bouclier
   'swsh',
+  // 2023+ : Écarlate & Violet
   'sv',
-  'me',
 ];
 
-const PROMO_SERIES_PATTERNS = [/^mc$/i, /mcd/i, /mcdonald/i, /promo/i, /pop/i, /^p$/i, /^tk$/i, /^np$/i];
+// Patterns d'IDs de séries promotionnelles ou hors-ligne principale
+const PROMO_SERIES_PATTERNS = [/mcd/i, /mcdonald/i, /promo/i, /pop/i, /^p$/i];
+
+// TCG POCKET — jeu mobile, PAS de boosters physiques en blister.
+// L'utilisateur ne veut QUE les séries qui sortent en boutique réelle.
 const POCKET_SERIES_PATTERNS = [/tcgp/i, /pocket/i, /^a[0-9]/i, /\-pocket/i];
 
 function isPromoSerie(serieId) {
@@ -447,10 +475,12 @@ function isPocketSerie(serieId) {
   return POCKET_SERIES_PATTERNS.some(re => re.test(id));
 }
 
+// Mainline = uniquement les séries de la ligne principale physique
 function isMainlineSerie(serieId) {
   const id = (serieId || '').toLowerCase();
   if (isPocketSerie(id)) return false;
   if (isPromoSerie(id)) return false;
+  // Whitelist stricte des séries de boosters physiques officiels Pokémon TCG
   return SERIES_CHRONO.includes(id);
 }
 
@@ -458,6 +488,7 @@ function getSerieChronoRank(serieId) {
   const id = (serieId || '').toLowerCase();
   const idx = SERIES_CHRONO.indexOf(id);
   if (idx >= 0) return idx;
+  // Fallback : promos après tout, autres juste avant
   if (isPromoSerie(id)) return 999;
   return 500;
 }
@@ -466,20 +497,34 @@ function getSerieChronoRank(serieId) {
 // SERIES — liste complète ENRICHIE et triée chronologiquement
 // L'endpoint /sets ne renvoie ni `serie` ni `releaseDate` ;
 // /series/{id} les fournit. On enrichit donc chaque set ici.
-// McDonald's reste mais est placé tout à la fin ; TCG Pocket est exclu.
 // ============================================
 async function getAllSeries() {
   if (CACHE.series) return CACHE.series;
   try {
-    const briefs = await fetchJSON(`${TCGDEX_API}/series`);
+    // En parallèle : la liste des séries + la liste complète des sets (pour récupérer les logos/symbols)
+    const [briefs, allSets] = await Promise.all([
+      fetchJSON(`${TCGDEX_API}/series`),
+      fetchJSON(`${TCGDEX_API}/sets`).catch(() => []),
+    ]);
+    // Index des sets par id pour merge rapide (logo, symbol, cardCount complet)
+    const setsById = {};
+    (allSets || []).forEach(s => { setsById[s.id] = s; });
+
     const enriched = await Promise.all(briefs.map(async (b) => {
       const detail = await fetchJSON(`${TCGDEX_API}/series/${b.id}`).catch(() => null);
       const releaseDate = detail?.releaseDate || '';
-      const sets = (detail?.sets || []).map(s => ({
-        ...s,
-        serie: { id: b.id, name: b.name },
-        releaseDate: s.releaseDate || releaseDate,
-      }));
+      const sets = (detail?.sets || []).map(s => {
+        const flat = setsById[s.id] || {};
+        return {
+          ...s,
+          // /series/{id} ne renvoie pas le logo/symbol, on les récupère depuis /sets
+          logo: s.logo || flat.logo,
+          symbol: s.symbol || flat.symbol,
+          cardCount: s.cardCount || flat.cardCount,
+          serie: { id: b.id, name: b.name },
+          releaseDate: s.releaseDate || flat.releaseDate || releaseDate,
+        };
+      });
       const setDates = sets.map(s => s.releaseDate).filter(Boolean).sort();
       const earliest = setDates[0] || releaseDate || '';
       return {
@@ -493,31 +538,21 @@ async function getAllSeries() {
         isMainline: isMainlineSerie(b.id),
       };
     }));
-    // Exclut TCG Pocket (jeu mobile, hors collection physique)
-    const visible = enriched.filter(s => !s.isPocket && s.sets.length > 0);
-    // McDonald's (et promos) à la fin ; le reste en ordre chronologique
-    const promo = visible.filter(s => s.isPromo);
-    const main = visible.filter(s => !s.isPromo);
-    main.sort((a, b) => {
+    enriched.sort((a, b) => {
       const ra = getSerieChronoRank(a.id);
       const rb = getSerieChronoRank(b.id);
       if (ra !== rb) return ra - rb;
-      return (a.releaseDate || '9999').localeCompare(b.releaseDate || '9999');
+      const da = a.releaseDate || '9999';
+      const db = b.releaseDate || '9999';
+      if (da !== db) return da.localeCompare(db);
+      return (a.name || '').localeCompare(b.name || '');
     });
-    // McDonald's tout à la fin, le reste des promos par date
-    const isMcDo = id => /^mc$|mcd|mcdonald/i.test(id);
-    promo.sort((a, b) => {
-      const am = isMcDo(a.id), bm = isMcDo(b.id);
-      if (am !== bm) return am ? 1 : -1;
-      return (a.releaseDate || '9999').localeCompare(b.releaseDate || '9999');
-    });
-    const ordered = [...main, ...promo];
-    ordered.forEach(s => {
+    enriched.forEach(s => {
       s.sets.sort((a, b) => (a.releaseDate || '9999').localeCompare(b.releaseDate || '9999'));
     });
-    CACHE.series = ordered;
+    CACHE.series = enriched;
     saveCacheToStorage();
-    return ordered;
+    return enriched;
   } catch (err) {
     console.error('getAllSeries error:', err);
     return [];
@@ -526,6 +561,7 @@ async function getAllSeries() {
 
 // ============================================
 // SETS PRINCIPAUX (hors promos / hors TCG Pocket numérique)
+// Seuls les sets de la ligne physique officielle sortis en blister.
 // ============================================
 async function getMainlineSets() {
   const series = await getAllSeries();
@@ -540,6 +576,7 @@ async function getSetsBySeries() {
   if (series.length > 0) {
     return series.map(s => ({ id: s.id, name: s.name, sets: s.sets }));
   }
+  // Fallback : regroupement à plat
   const sets = await getAllSets();
   const grouped = {};
   sets.forEach(set => {
@@ -554,27 +591,6 @@ async function getSetsBySeries() {
 }
 
 // ============================================
-// GRADING PSA — état déterministe par id (pour les lots d'enchères)
-// ============================================
-const PSA_GRADES = [
-  { label: 'PSA 10', short: '10', mult: 2.6,  weight: 4,  tier: 'gem' },
-  { label: 'PSA 9',  short: '9',  mult: 1.7,  weight: 10, tier: 'mint' },
-  { label: 'PSA 8',  short: '8',  mult: 1.25, weight: 14, tier: 'nm' },
-  { label: 'Brut',   short: '—',  mult: 1.0,  weight: 72, tier: 'raw' },
-];
-
-function getCardGrade(cardId) {
-  const h = (cardId || 'x').split('').reduce((a, c, i) => a + c.charCodeAt(0) * (i + 3), 0);
-  const roll = h % 100;
-  let acc = 0;
-  for (const g of PSA_GRADES) {
-    acc += g.weight;
-    if (roll < acc) return g;
-  }
-  return PSA_GRADES[PSA_GRADES.length - 1];
-}
-
-// ============================================
 // IMAGES
 // ============================================
 function getCardImage(card, quality = 'high', format = 'webp') {
@@ -582,9 +598,21 @@ function getCardImage(card, quality = 'high', format = 'webp') {
   return `${card.image}/${quality}.${format}`;
 }
 
+// ============================================
+// SET LOGOS — la locale FR n'a pas de logo pour tous les sets vintage.
+// On expose les URLs FR + fallback EN. Le rendu tente FR puis bascule sur EN.
+// ============================================
 function getSetLogo(set, format = 'webp') {
   if (!set || !set.logo) return null;
+  // L'URL renvoyée par TCGdex pointe sur la locale courante (fr)
   return `${set.logo}.${format}`;
+}
+
+function getSetLogoFallback(set, format = 'webp') {
+  if (!set || !set.logo) return null;
+  // Remplace .../fr/... par .../en/... pour les sets qui n'ont pas de logo FR
+  const fr = `${set.logo}.${format}`;
+  return fr.replace('/fr/', '/en/');
 }
 
 function getSetSymbol(set, format = 'webp') {
@@ -625,8 +653,29 @@ async function searchCards(query) {
 // ============================================
 function formatPrice(value, currency = 'EUR') {
   if (value === null || value === undefined || isNaN(value)) return '—';
+  if (value < 1) return new Intl.NumberFormat('fr-FR', { style: 'currency', currency, minimumFractionDigits: 2 }).format(value);
   if (value < 100) return new Intl.NumberFormat('fr-FR', { style: 'currency', currency, minimumFractionDigits: 2 }).format(value);
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency, maximumFractionDigits: 0 }).format(value);
+}
+
+// ============================================
+// SCAFFOLDING TCGPLAYER (pour usage futur avec clé API)
+// Pour activer, il faudra un backend node/python qui proxy les appels
+// car TCGplayer bloque les appels CORS depuis le navigateur
+// ============================================
+const TCGPLAYER_CONFIG = {
+  enabled: false, // mettre à true quand la clé sera configurée
+  apiKey: null, // à remplir
+  baseUrl: 'https://api.tcgplayer.com/catalog/products',
+  // Note : nécessite un backend proxy car CORS bloque les appels directs
+};
+
+async function getTCGplayerPrice(cardId) {
+  if (!TCGPLAYER_CONFIG.enabled) return null;
+  // Stub pour future implémentation backend
+  // Le flux sera : navigateur → ton-backend.com/api/price/{cardId} → TCGplayer API → réponse
+  console.warn('TCGplayer integration disabled. Configure backend proxy first.');
+  return null;
 }
 
 // ============================================
@@ -634,25 +683,26 @@ function formatPrice(value, currency = 'EUR') {
 // ============================================
 window.TCGdex = {
   getAllSets,
-  getAllSeries,
-  getMainlineSets,
-  isPromoSerie,
+  getAllSeries,        // NEW : séries enrichies + triées chronologiquement
+  getMainlineSets,     // NEW : sets hors promos (pour le marché)
+  isPromoSerie,        // NEW : helper pour filtrer les séries promo
   getSetDetail,
   getCardDetail,
   getSetsBySeries,
   getCardImage,
   getSetLogo,
+  getSetLogoFallback,
   getSetSymbol,
-  getRealPrice,
-  estimatePrice,
+  getRealPrice,        // NEW : prix réel structuré
+  estimatePrice,       // wrapper rétrocompatible
   estimateTrend,
-  getConditionPricing,
+  getConditionPricing, // NEW : grille de prix par état (PSA 10 → Poor)
   getConditionMultipliers,
-  getCardGrade,
   CONDITION_GRADES,
-  getSetPricing,
-  estimateSetFloor,
-  formatPrice,
+  getSetPricing,       // NEW : calcul vrais floor/médiane/total d'un set
+  estimateSetFloor,    // estimation rapide sans charger toutes les cartes
+  formatPrice,         // NEW : formatage EUR français
   searchCards,
+  getTCGplayerPrice,   // NEW : stub pour futur
   API_URL: TCGDEX_API,
 };

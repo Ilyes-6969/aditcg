@@ -131,7 +131,7 @@ const USERNAME_COOLDOWN_MS = 14 * 24 * 60 * 60 * 1000; // 14 jours
 function getUsernameCooldown() {
   const user = getCurrentUser();
   if (!user) return { canChange: false, remainingMs: 0, remainingDays: 0, lastChange: null };
-  const last = user.usernameChangedAt || 0;
+  const last = user.usernameChangedAt || 0; // 0 = jamais changé → autorisé
   if (!last) return { canChange: true, remainingMs: 0, remainingDays: 0, lastChange: null };
   const elapsed = Date.now() - last;
   if (elapsed >= USERNAME_COOLDOWN_MS) {
@@ -150,6 +150,7 @@ function changeUsername(newUsername) {
   const user = getCurrentUser();
   if (!user) return { success: false, errors: ['Vous devez être connecté'] };
 
+  // 1) Cooldown 14 jours
   const cd = getUsernameCooldown();
   if (!cd.canChange) {
     return {
@@ -158,6 +159,7 @@ function changeUsername(newUsername) {
     };
   }
 
+  // 2) Validation
   const u = (newUsername || '').toLowerCase().trim();
   const errors = [];
   if (u.length < 3) errors.push("Le pseudo doit faire au moins 3 caractères");
@@ -171,16 +173,18 @@ function changeUsername(newUsername) {
   }
   if (errors.length > 0) return { success: false, errors };
 
+  // 3) Application
   updateProfile({ username: u, usernameChangedAt: Date.now() });
   return { success: true, newUsername: u };
 }
 
 // ============================================
-// DEMO USER
+// DEMO USER (existe pour se connecter facilement, sans auto-login)
 // ============================================
 function ensureDemoUser() {
   const users = getUsers();
   if (users.length === 0) {
+    // Create demo user WITHOUT setting session
     const user = {
       id: 'u_demo_alex',
       name: 'Alex Dresseur',
@@ -188,13 +192,36 @@ function ensureDemoUser() {
       username: 'alex_pkmn',
       passwordHash: hashPassword('demo1234'),
       avatar: 'A',
-      createdAt: Date.now() - 365 * 24 * 60 * 60 * 1000,
+      createdAt: Date.now() - 365 * 24 * 60 * 60 * 1000, // il y a 1 an
       stats: { rating: 4.9, sales: 23, trades: 17, reviews: 87 },
       location: 'France',
     };
     users.push(user);
     saveUsers(users);
   }
+}
+
+// ============================================
+// SEARCH USERS — par pseudo ou nom (publique : tout sauf email/pwd)
+// ============================================
+function searchUsers(query, limit = 8) {
+  const q = (query || '').toLowerCase().trim();
+  if (q.length < 2) return [];
+  const users = getUsers();
+  return users
+    .filter(u =>
+      (u.username || '').toLowerCase().includes(q) ||
+      (u.name || '').toLowerCase().includes(q)
+    )
+    .map(u => ({
+      id: u.id,
+      name: u.name,
+      username: u.username,
+      avatar: u.avatar,
+      avatarImage: u.avatarImage || null,
+      createdAt: u.createdAt,
+    }))
+    .slice(0, limit);
 }
 
 window.Auth = {
@@ -208,4 +235,5 @@ window.Auth = {
   getUsernameCooldown,
   USERNAME_COOLDOWN_MS,
   ensureDemoUser,
+  searchUsers,
 };
